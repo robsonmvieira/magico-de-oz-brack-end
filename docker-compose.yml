@@ -1,0 +1,55 @@
+services:
+  app:
+    build: .
+    ports:
+      - "4001:3000"
+    volumes:
+      - .:/home/node/app
+    container_name: magico-backend
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+
+  db:
+    env_file:
+      - ./envs/.env
+    platform: linux/x86_64
+    image: postgres:14
+    container_name: database-magico
+    restart: always
+    ports:
+      - 5435:5432
+
+    volumes:
+      - .postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=magicoDb
+  redis:
+    env_file:
+      - ./envs/.env
+    image: redis
+    container_name: app-magico-redis
+    restart: always
+    volumes:
+      - redis-data:/data
+    ports:
+      - 6381:6379
+    environment:
+      - REDIS_PASSWORD=redisDev123
+
+  rabbitmq:
+    platform: linux/arm/v7
+    image: rabbitmq:3.9.11-management
+    container_name: rabbitmq-magico
+    ports:
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+
+volumes:
+  redis-data:
