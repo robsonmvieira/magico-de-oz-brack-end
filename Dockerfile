@@ -1,6 +1,6 @@
 FROM node:22
 
-RUN npm install -g @nestjs/cli@10.3.2
+RUN npm install -g @nestjs/cli@11
 
 USER node
 
