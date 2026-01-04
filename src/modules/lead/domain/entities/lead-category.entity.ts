@@ -1,4 +1,3 @@
-import { Entity } from '@modules/core/domain/entities/entity'
 import { LeadCategoryId } from '../valueObject/lead-category.uuid'
 import { ValueObject } from '@modules/core/domain/valueObject'
 import {
@@ -11,6 +10,7 @@ import {
   SlugVO
 } from '../valueObject'
 import { LeadCategoryFakeBuilder } from '@modules/lead/tests/lead-category.fake-builder'
+import { AggregateRoot } from '@modules/core/domain/entities'
 
 // ============================================================
 // INTERFACES - Contratos de dados
@@ -62,7 +62,7 @@ type LeadCategoryProps = {
   is_blocked?: boolean
 }
 
-export class LeadCategoryEntity extends Entity {
+export class LeadCategoryEntity extends AggregateRoot {
   _name: NameVO
   _slug: SlugVO
   _description?: string
