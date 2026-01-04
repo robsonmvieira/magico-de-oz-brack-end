@@ -10,11 +10,7 @@ describe('KeywordsVO', () => {
     })
 
     it('should remove duplicates', () => {
-      const keywords = KeywordsVO.create([
-        'marketing',
-        'digital',
-        'marketing'
-      ])
+      const keywords = KeywordsVO.create(['marketing', 'digital', 'marketing'])
 
       expect(keywords.count).toBe(2)
     })

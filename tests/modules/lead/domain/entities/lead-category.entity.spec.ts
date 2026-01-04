@@ -381,16 +381,17 @@ describe('LeadCategoryEntity', () => {
     it('should count how many keywords match the text', () => {
       const category = LeadCategoryEntity.fake()
         .aCategory()
-        .withKeywords(['software', 'tecnologia', 'desenvolvimento', 'aplicativo'])
+        .withKeywords([
+          'software',
+          'tecnologia',
+          'desenvolvimento',
+          'aplicativo'
+        ])
         .build()
 
+      expect(category.countMatches('Empresa de Software e Tecnologia')).toBe(2)
       expect(
-        category.countMatches('Empresa de Software e Tecnologia')
-      ).toBe(2)
-      expect(
-        category.countMatches(
-          'Software de desenvolvimento de aplicativo'
-        )
+        category.countMatches('Software de desenvolvimento de aplicativo')
       ).toBe(3)
     })
 
