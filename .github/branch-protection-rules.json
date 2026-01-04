@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json.schemastore.org/github-branch-protection-rules.json",
+  "description": "Branch protection rules for Mágico de Oz CRM repository",
+  "instructions": {
+    "how_to_apply": "Go to GitHub Repository > Settings > Branches > Add branch protection rule",
+    "note": "These rules require PRs for all protected branches. No direct pushes allowed."
+  },
+  "branches": {
+    "develop": {
+      "pattern": "develop",
+      "protection": {
+        "required_status_checks": {
+          "strict": true,
+          "contexts": [
+            "Lint",
+            "Test",
+            "Build"
+          ]
+        },
+        "enforce_admins": false,
+        "required_pull_request_reviews": null,
+        "restrictions": null,
+        "allow_force_pushes": false,
+        "allow_deletions": false,
+        "block_creations": false,
+        "required_conversation_resolution": true,
+        "lock_branch": false,
+        "allow_fork_syncing": false,
+        "required_linear_history": false
+      }
+    },
+    "homolog": {
+      "pattern": "homolog",
+      "protection": {
+        "required_status_checks": {
+          "strict": true,
+          "contexts": [
+            "Lint",
+            "Test",
+            "Build"
+          ]
+        },
+        "enforce_admins": false,
+        "required_pull_request_reviews": null,
+        "restrictions": null,
+        "allow_force_pushes": false,
+        "allow_deletions": false,
+        "block_creations": false,
+        "required_conversation_resolution": true,
+        "lock_branch": false,
+        "allow_fork_syncing": false,
+        "required_linear_history": false
+      }
+    },
+    "stage": {
+      "pattern": "stage",
+      "protection": {
+        "required_status_checks": {
+          "strict": true,
+          "contexts": [
+            "Lint",
+            "Test",
+            "Build"
+          ]
+        },
+        "enforce_admins": false,
+        "required_pull_request_reviews": null,
+        "restrictions": null,
+        "allow_force_pushes": false,
+        "allow_deletions": false,
+        "block_creations": false,
+        "required_conversation_resolution": true,
+        "lock_branch": false,
+        "allow_fork_syncing": false,
+        "required_linear_history": false
+      }
+    },
+    "main": {
+      "pattern": "main",
+      "protection": {
+        "required_status_checks": {
+          "strict": true,
+          "contexts": [
+            "Lint",
+            "Test",
+            "Build",
+            "Security Audit"
+          ]
+        },
+        "enforce_admins": true,
+        "required_pull_request_reviews": null,
+        "restrictions": null,
+        "allow_force_pushes": false,
+        "allow_deletions": false,
+        "block_creations": false,
+        "required_conversation_resolution": true,
+        "lock_branch": false,
+        "allow_fork_syncing": false,
+        "required_linear_history": true
+      }
+    }
+  },
+  "github_cli_commands": {
+    "description": "Use these gh CLI commands to apply branch protection rules",
+    "develop": "gh api repos/{owner}/{repo}/branches/develop/protection -X PUT -H 'Accept: application/vnd.github+json' -f required_status_checks='{\"strict\":true,\"contexts\":[\"Lint\",\"Test\",\"Build\"]}' -f enforce_admins=false -f required_pull_request_reviews=null -f restrictions=null -f allow_force_pushes=false -f allow_deletions=false",
+    "homolog": "gh api repos/{owner}/{repo}/branches/homolog/protection -X PUT -H 'Accept: application/vnd.github+json' -f required_status_checks='{\"strict\":true,\"contexts\":[\"Lint\",\"Test\",\"Build\"]}' -f enforce_admins=false -f required_pull_request_reviews=null -f restrictions=null -f allow_force_pushes=false -f allow_deletions=false",
+    "stage": "gh api repos/{owner}/{repo}/branches/stage/protection -X PUT -H 'Accept: application/vnd.github+json' -f required_status_checks='{\"strict\":true,\"contexts\":[\"Lint\",\"Test\",\"Build\"]}' -f enforce_admins=false -f required_pull_request_reviews=null -f restrictions=null -f allow_force_pushes=false -f allow_deletions=false",
+    "main": "gh api repos/{owner}/{repo}/branches/main/protection -X PUT -H 'Accept: application/vnd.github+json' -f required_status_checks='{\"strict\":true,\"contexts\":[\"Lint\",\"Test\",\"Build\",\"Security Audit\"]}' -f enforce_admins=true -f required_pull_request_reviews=null -f restrictions=null -f allow_force_pushes=false -f allow_deletions=false -f required_linear_history=true"
+  },
+  "setup_script": {
+    "description": "Run this script after creating the repository on GitHub",
+    "steps": [
+      "1. Create branches: git checkout -b homolog && git push -u origin homolog",
+      "2. Create branches: git checkout -b stage && git push -u origin stage",
+      "3. Go to GitHub > Settings > Branches",
+      "4. Add branch protection rule for each branch (develop, homolog, stage, main)",
+      "5. Configure each rule according to the 'branches' section above"
+    ]
+  }
+}
