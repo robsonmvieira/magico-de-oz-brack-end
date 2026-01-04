@@ -180,6 +180,43 @@ export class LeadCategoryEntity extends Entity {
     this.setActive(false)
     this.touch()
   }
+  getPriority(): PriorityVO {
+    return this._priority
+  }
+
+  // -------------------- Domain Logic --------------------
+
+  /**
+   * Verifica se um texto (ex: nome da empresa, categoria do Google)
+   * combina com as keywords desta categoria
+   */
+  matchesText(text: string): boolean {
+    return this._keywords.matchesAny(text)
+  }
+
+  /**
+   * Retorna quantas keywords combinam com o texto
+   * Útil para ranking de categorias
+   */
+  countMatches(text: string): number {
+    return this._keywords.countMatches(text)
+  }
+
+  /**
+   * Calcula a pontuação que esta categoria adiciona a um lead
+   */
+  calculateBonusScore(): number {
+    return this._scoreBonus.value
+  }
+
+  /**
+   * Verifica se esta categoria tem prioridade maior que outra
+   */
+  hasHigherPriorityThan(other: LeadCategoryEntity): boolean {
+    return this._priority.isHigherThan(other.getPriority())
+  }
+
+  // -------------------- Private Helpers --------------------
 
   get entity_id(): ValueObject {
     return this.id
