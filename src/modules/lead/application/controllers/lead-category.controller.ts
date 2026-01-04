@@ -137,7 +137,7 @@ export class LeadCategoryController {
   })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     // TODO: Implement remove logic
-    return
+    return { message: 'Delete lead category', id }
   }
 
   @Patch(':id/activate')
