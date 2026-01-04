@@ -12,6 +12,12 @@ fi
 echo "Checking linting..."
 $RUN_CMD npm run lint:check || exit 1
 
+echo "Checking formatting..."
+$RUN_CMD npx prettier --check "src/**/*.ts" "tests/**/*.ts" || exit 1
+
+echo "Running TypeScript type check..."
+$RUN_CMD npx tsc --noEmit || exit 1
+
 echo "Running tests..."
 $RUN_CMD npm test || exit 1
 
