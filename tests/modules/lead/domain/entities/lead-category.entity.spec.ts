@@ -336,4 +336,162 @@ describe('LeadCategoryEntity', () => {
       expect(category.entity_id).toBe(id)
     })
   })
+
+  describe('matchesText', () => {
+    it('should return true when text contains a keyword', () => {
+      const category = LeadCategoryEntity.fake()
+        .aCategory()
+        .withKeywords(['software', 'tecnologia', 'desenvolvimento'])
+        .build()
+
+      expect(category.matchesText('Empresa de Software LTDA')).toBe(true)
+      expect(category.matchesText('Desenvolvimento de aplicativos')).toBe(true)
+    })
+
+    it('should return false when text does not contain any keyword', () => {
+      const category = LeadCategoryEntity.fake()
+        .aCategory()
+        .withKeywords(['software', 'tecnologia'])
+        .build()
+
+      expect(category.matchesText('Restaurante Bom Sabor')).toBe(false)
+    })
+
+    it('should be case insensitive', () => {
+      const category = LeadCategoryEntity.fake()
+        .aCategory()
+        .withKeywords(['software'])
+        .build()
+
+      expect(category.matchesText('SOFTWARE HOUSE')).toBe(true)
+      expect(category.matchesText('SoFtWaRe Solutions')).toBe(true)
+    })
+
+    it('should return false when keywords are empty', () => {
+      const category = LeadCategoryEntity.fake()
+        .aCategory()
+        .withKeywords([])
+        .build()
+
+      expect(category.matchesText('Qualquer texto')).toBe(false)
+    })
+  })
+
+  describe('countMatches', () => {
+    it('should count how many keywords match the text', () => {
+      const category = LeadCategoryEntity.fake()
+        .aCategory()
+        .withKeywords(['software', 'tecnologia', 'desenvolvimento', 'aplicativo'])
+        .build()
+
+      expect(
+        category.countMatches('Empresa de Software e Tecnologia')
+      ).toBe(2)
+      expect(
+        category.countMatches(
+          'Software de desenvolvimento de aplicativo'
+        )
+      ).toBe(3)
+    })
+
+    it('should return 0 when no keywords match', () => {
+      const category = LeadCategoryEntity.fake()
+        .aCategory()
+        .withKeywords(['software', 'tecnologia'])
+        .build()
+
+      expect(category.countMatches('Padaria do João')).toBe(0)
+    })
+
+    it('should return 0 when keywords are empty', () => {
+      const category = LeadCategoryEntity.fake()
+        .aCategory()
+        .withKeywords([])
+        .build()
+
+      expect(category.countMatches('Qualquer texto')).toBe(0)
+    })
+  })
+
+  describe('calculateBonusScore', () => {
+    it('should return the score bonus value', () => {
+      const category = LeadCategoryEntity.fake()
+        .aCategory()
+        .withScoreBonus(25)
+        .build()
+
+      expect(category.calculateBonusScore()).toBe(25)
+    })
+
+    it('should return negative score bonus', () => {
+      const category = LeadCategoryEntity.fake()
+        .aCategory()
+        .withScoreBonus(-10)
+        .build()
+
+      expect(category.calculateBonusScore()).toBe(-10)
+    })
+
+    it('should return 0 when score bonus is not set', () => {
+      const category = LeadCategoryEntity.create({
+        name: 'Test Category'
+      })
+
+      expect(category.calculateBonusScore()).toBe(0)
+    })
+  })
+
+  describe('hasHigherPriorityThan', () => {
+    it('should return true when category has higher priority', () => {
+      const highPriority = LeadCategoryEntity.fake()
+        .aCategory()
+        .withPriority(5)
+        .build()
+      const lowPriority = LeadCategoryEntity.fake()
+        .aCategory()
+        .withPriority(2)
+        .build()
+
+      expect(highPriority.hasHigherPriorityThan(lowPriority)).toBe(true)
+    })
+
+    it('should return false when category has lower priority', () => {
+      const highPriority = LeadCategoryEntity.fake()
+        .aCategory()
+        .withPriority(5)
+        .build()
+      const lowPriority = LeadCategoryEntity.fake()
+        .aCategory()
+        .withPriority(2)
+        .build()
+
+      expect(lowPriority.hasHigherPriorityThan(highPriority)).toBe(false)
+    })
+
+    it('should return false when categories have same priority', () => {
+      const category1 = LeadCategoryEntity.fake()
+        .aCategory()
+        .withPriority(3)
+        .build()
+      const category2 = LeadCategoryEntity.fake()
+        .aCategory()
+        .withPriority(3)
+        .build()
+
+      expect(category1.hasHigherPriorityThan(category2)).toBe(false)
+    })
+  })
+
+  describe('getPriority', () => {
+    it('should return the priority value object', () => {
+      const category = LeadCategoryEntity.fake()
+        .aCategory()
+        .withPriority(4)
+        .build()
+
+      const priority = category.getPriority()
+
+      expect(priority.value).toBe(4)
+    })
+  })
 })
