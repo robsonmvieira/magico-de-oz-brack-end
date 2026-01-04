@@ -17,10 +17,7 @@ import {
   ApiParam,
   ApiBody
 } from '@nestjs/swagger'
-import {
-  CreateLeadCategoryDto,
-  UpdateLeadCategoryDto
-} from '../dto'
+import { CreateLeadCategoryDto, UpdateLeadCategoryDto } from '../dto'
 
 @ApiTags('Lead Categories')
 @Controller('lead-categories')
