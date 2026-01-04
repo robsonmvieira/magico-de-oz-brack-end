@@ -1,12 +1,21 @@
 echo "Running pre-push validation (fail-fast)..."
 
+# Check if Docker container is running
+if docker ps --format '{{.Names}}' | grep -q '^magico-backend$'; then
+  echo "Using Docker container..."
+  RUN_CMD="docker exec magico-backend"
+else
+  echo "Running locally..."
+  RUN_CMD=""
+fi
+
 echo "Checking linting..."
-npm run lint:check || exit 1
+$RUN_CMD npm run lint:check || exit 1
 
 echo "Running tests..."
-npm test || exit 1
+$RUN_CMD npm test || exit 1
 
 echo "Building project..."
-npm run build || exit 1
+$RUN_CMD npm run build || exit 1
 
 echo "All checks passed. Pushing..."
