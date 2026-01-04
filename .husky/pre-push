@@ -1,27 +1,27 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+echo "Running pre-push validation (fail-fast)..."
 
-echo "🔍 Running pre-push validation (fail-fast)..."
+# Check if Docker container is running
+if docker ps --format '{{.Names}}' | grep -q '^magico-backend$'; then
+  echo "Using Docker container..."
+  RUN_CMD="docker exec magico-backend"
+else
+  echo "Running locally..."
+  RUN_CMD=""
+fi
 
-# Run lint check
-echo "📝 Checking linting..."
-npm run lint || {
-  echo "❌ Lint check failed. Push aborted."
-  exit 1
-}
+echo "Checking linting..."
+$RUN_CMD npm run lint:check || exit 1
 
-# Run tests
-echo "🧪 Running tests..."
-npm test || {
-  echo "❌ Tests failed. Push aborted."
-  exit 1
-}
+echo "Checking formatting..."
+$RUN_CMD npx prettier --check "src/**/*.ts" "tests/**/*.ts" || exit 1
 
-# Run build
-echo "🏗️ Building project..."
-npm run build || {
-  echo "❌ Build failed. Push aborted."
-  exit 1
-}
+echo "Running TypeScript type check..."
+$RUN_CMD npx tsc --noEmit || exit 1
 
-echo "✅ All checks passed. Pushing..."
+echo "Running tests..."
+$RUN_CMD npm test || exit 1
+
+echo "Building project..."
+$RUN_CMD npm run build || exit 1
+
+echo "All checks passed. Pushing..."
