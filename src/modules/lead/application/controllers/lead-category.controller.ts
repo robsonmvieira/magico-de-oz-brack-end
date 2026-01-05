@@ -8,7 +8,8 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
-  ParseUUIDPipe
+  ParseUUIDPipe,
+  Inject
 } from '@nestjs/common'
 import {
   ApiTags,
@@ -18,10 +19,13 @@ import {
   ApiBody
 } from '@nestjs/swagger'
 import { CreateLeadCategoryDto, UpdateLeadCategoryDto } from '../dto'
+import { ListCategoryUseCase } from '../usecases'
 
 @ApiTags('Lead Categories')
 @Controller('lead-categories')
 export class LeadCategoryController {
+  @Inject(ListCategoryUseCase)
+  private readonly listCategoryUseCase: ListCategoryUseCase
   @Post()
   @ApiOperation({
     summary: 'Create a new lead category',
@@ -54,9 +58,10 @@ export class LeadCategoryController {
     status: HttpStatus.OK,
     description: 'List of lead categories retrieved successfully'
   })
-  findAll() {
+  async findAll() {
     // TODO: Implement findAll logic
-    return { message: 'List all lead categories' }
+    const result = await this.listCategoryUseCase.execute()
+    return { message: 'List all lead categories', data: result.data }
   }
 
   @Get(':id')
