@@ -42,3 +42,4 @@ lerna-debug.log*
 .env
 .env.local
 .history
+.postgres_data_test
