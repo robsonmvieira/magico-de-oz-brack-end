@@ -9,8 +9,10 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
-  Inject
+  Inject,
+  Res
 } from '@nestjs/common'
+import { Response } from 'express'
 import {
   ApiTags,
   ApiOperation,
@@ -19,13 +21,16 @@ import {
   ApiBody
 } from '@nestjs/swagger'
 import { CreateLeadCategoryDto, UpdateLeadCategoryDto } from '../dtos'
-import { ListCategoryUseCase } from '../use-cases'
+import { ListCategoryUseCase, CreateCategoryUseCase } from '../use-cases'
 
 @ApiTags('Lead Categories')
 @Controller('lead-categories')
 export class LeadCategoryController {
   @Inject(ListCategoryUseCase)
   private readonly listCategoryUseCase: ListCategoryUseCase
+
+  @Inject(CreateCategoryUseCase)
+  private readonly createCategoryUseCase: CreateCategoryUseCase
 
   @Post()
   @ApiOperation({
@@ -45,9 +50,20 @@ export class LeadCategoryController {
     status: HttpStatus.CONFLICT,
     description: 'A category with this name already exists'
   })
-  create(@Body() createLeadCategoryDto: CreateLeadCategoryDto) {
-    // TODO: Implement create logic
-    return { message: 'Create lead category', data: createLeadCategoryDto }
+  async create(
+    @Body() createLeadCategoryDto: CreateLeadCategoryDto,
+    @Res() res: Response
+  ) {
+    const result = await this.createCategoryUseCase.execute({
+      name: createLeadCategoryDto.name,
+      description: createLeadCategoryDto.description,
+      priority: createLeadCategoryDto.priority,
+      scoreBonus: createLeadCategoryDto.scoreBonus,
+      keywords: createLeadCategoryDto.keywords,
+      color: createLeadCategoryDto.color
+    })
+
+    return res.status(result.statusCode).json(result)
   }
 
   @Get()
@@ -59,10 +75,9 @@ export class LeadCategoryController {
     status: HttpStatus.OK,
     description: 'List of lead categories retrieved successfully'
   })
-  async findAll() {
-    // TODO: Implement findAll logic
+  async findAll(@Res() res: Response) {
     const result = await this.listCategoryUseCase.execute()
-    return { message: 'List all lead categories', data: result.data }
+    return res.status(result.statusCode).json(result)
   }
 
   @Get(':id')

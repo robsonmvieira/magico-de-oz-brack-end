@@ -1,4 +1,5 @@
 import { ListCategoryUseCase } from '@modules/lead/application/use-cases/lead-category/list/list-category.use-case'
+import { CreateCategoryUseCase } from '@modules/lead/application/use-cases/lead-category/create/create-category.use-case'
 import { LeadCategoryRepository } from '../repositories'
 
 const REPOSITORY_PROVIDERS = {
@@ -12,6 +13,10 @@ const USE_CASES_PROVIDERS = {
   ListCategoryUseCase: {
     provide: ListCategoryUseCase,
     useClass: ListCategoryUseCase
+  },
+  CreateCategoryUseCase: {
+    provide: CreateCategoryUseCase,
+    useClass: CreateCategoryUseCase
   }
 } as const
 
