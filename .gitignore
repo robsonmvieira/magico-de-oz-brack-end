@@ -36,6 +36,7 @@ lerna-debug.log*
 
 # Docker
 .postgres_data
+.postgres_data_test
 
 # Environment
 .env
