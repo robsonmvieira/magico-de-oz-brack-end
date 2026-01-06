@@ -8,8 +8,8 @@ import {
   Delete
 } from '@nestjs/common'
 import { LeadService } from '../../lead.service'
-import { CreateLeadDto } from '../dto/create-lead.dto'
-import { UpdateLeadDto } from '../dto/update-lead.dto'
+import { CreateLeadDto } from '../dtos/create-lead.dto'
+import { UpdateLeadDto } from '../dtos/update-lead.dto'
 
 @Controller('leads')
 export class LeadController {

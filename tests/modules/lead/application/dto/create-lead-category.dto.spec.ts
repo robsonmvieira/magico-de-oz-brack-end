@@ -1,7 +1,7 @@
 import {
   CreateLeadCategoryDto,
   CreateLeadCategoryDtoValidator
-} from '@modules/lead/application/dto'
+} from '@modules/lead/application/dtos'
 
 describe('CreateLeadCategoryDto', () => {
   describe('validation', () => {

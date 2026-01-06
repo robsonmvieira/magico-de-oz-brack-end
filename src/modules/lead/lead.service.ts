@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { CreateLeadDto } from './application/dto/create-lead.dto'
-import { UpdateLeadDto } from './application/dto/update-lead.dto'
+import { CreateLeadDto } from './application/dtos/create-lead.dto'
+import { UpdateLeadDto } from './application/dtos/update-lead.dto'
 
 @Injectable()
 export class LeadService {

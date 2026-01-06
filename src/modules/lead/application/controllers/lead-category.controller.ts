@@ -18,14 +18,15 @@ import {
   ApiParam,
   ApiBody
 } from '@nestjs/swagger'
-import { CreateLeadCategoryDto, UpdateLeadCategoryDto } from '../dto'
-import { ListCategoryUseCase } from '../usecases'
+import { CreateLeadCategoryDto, UpdateLeadCategoryDto } from '../dtos'
+import { ListCategoryUseCase } from '../use-cases'
 
 @ApiTags('Lead Categories')
 @Controller('lead-categories')
 export class LeadCategoryController {
   @Inject(ListCategoryUseCase)
   private readonly listCategoryUseCase: ListCategoryUseCase
+
   @Post()
   @ApiOperation({
     summary: 'Create a new lead category',
