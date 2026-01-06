@@ -54,6 +54,12 @@ export class EnvService {
     return logging === 'true'
   }
 
+  get databaseUrl(): string {
+    const url = this.configService.get('DATABASE_URL', { infer: true })
+    if (url) return url
+    return `postgresql://${this.dbUsername}:${this.dbPassword}@${this.dbHost}:${this.dbPort}/${this.dbDatabase}`
+  }
+
   // Redis
   get redisHost(): string {
     return this.configService.get('REDIS_HOST', { infer: true })
@@ -119,7 +125,7 @@ export class EnvService {
     return this.configService.get('AWS_URL', { infer: true })
   }
 
-  // Database connection config object (útil para TypeORM)
+  // Database connection config object
   get databaseConfig() {
     return {
       host: this.dbHost,
@@ -127,7 +133,8 @@ export class EnvService {
       username: this.dbUsername,
       password: this.dbPassword,
       database: this.dbDatabase,
-      logging: this.dbLogging
+      logging: this.dbLogging,
+      url: this.databaseUrl
     }
   }
 

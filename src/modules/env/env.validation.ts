@@ -40,6 +40,10 @@ export class EnvironmentVariables {
   @IsString()
   DB_LOGGING?: string
 
+  @IsOptional()
+  @IsString()
+  DATABASE_URL?: string
+
   @IsString()
   REDIS_HOST: string
 
