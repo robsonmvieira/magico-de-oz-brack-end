@@ -12,10 +12,6 @@ import {
 import { LeadCategoryFakeBuilder } from '@modules/lead/tests/lead-category.fake-builder'
 import { AggregateRoot } from '@modules/core/domain/entities'
 
-// ============================================================
-// INTERFACES - Contratos de dados
-// ============================================================
-
 export interface ISectorDefinition {
   code: string
   name: string

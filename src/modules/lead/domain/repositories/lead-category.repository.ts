@@ -1,12 +1,16 @@
-import { LeadCategoryEntity } from '../entities/lead-category.entity'
+import {
+  LeadCategoryModel,
+  NewLeadCategoryModel
+} from '../models/lead-category.model'
 import { IRepository } from '@modules/core/domain/repositories'
 
-export interface ILeadCategoryRepository extends IRepository<LeadCategoryEntity> {
-  findByKeywordMatch(text: string): Promise<LeadCategoryEntity[]>
-  findActive(): Promise<LeadCategoryEntity[]>
-  findBySlug(slug: string): Promise<LeadCategoryEntity | null>
-  findActive(): Promise<LeadCategoryEntity[]>
-  findByKeywordMatch(text: string): Promise<LeadCategoryEntity[]>
+export interface ILeadCategoryRepository extends IRepository<
+  LeadCategoryModel,
+  NewLeadCategoryModel
+> {
+  findByKeywordMatch(text: string): Promise<LeadCategoryModel[]>
+  findActive(): Promise<LeadCategoryModel[]>
+  findBySlug(slug: string): Promise<LeadCategoryModel | null>
   exists(id: string): Promise<boolean>
   existsByName(name: string): Promise<boolean>
 }
