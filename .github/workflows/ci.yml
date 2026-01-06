@@ -57,7 +57,7 @@ jobs:
         run: npx tsc --noEmit
 
   test:
-    name: Unit Tests
+    name: Unit & Component Tests
     runs-on: ubuntu-latest
     needs: [lint, typecheck]
     steps:
