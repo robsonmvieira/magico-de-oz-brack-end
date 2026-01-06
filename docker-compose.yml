@@ -30,6 +30,19 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_DATABASE}
 
+  db-test:
+    image: postgres:16-alpine
+    container_name: database-magico-test
+    restart: always
+    ports:
+      - 5436:5432
+    volumes:
+      - .postgres_data_test:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_DB=test_db
+
   redis:
     env_file:
       - .env.local
