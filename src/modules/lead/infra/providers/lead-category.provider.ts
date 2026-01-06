@@ -1,4 +1,4 @@
-import { ListCategoryUseCase } from '@modules/lead/application/usecases/lead-category/list/list-category.use-case'
+import { ListCategoryUseCase } from '@modules/lead/application/use-cases/lead-category/list/list-category.use-case'
 import { LeadCategoryRepository } from '../repositories'
 
 const REPOSITORY_PROVIDERS = {

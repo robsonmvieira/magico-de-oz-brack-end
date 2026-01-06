@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { ListCategoryUseCase } from '@modules/lead/application/usecases/lead-category/list/list-category.use-case'
+import { ListCategoryUseCase } from '@modules/lead/application/use-cases/lead-category/list/list-category.use-case'
 import { ILeadCategoryRepository } from '@modules/lead/domain/repositories'
 import { LeadCategoryModel } from '@modules/lead/domain/models/lead-category.model'
 
@@ -106,7 +106,8 @@ describe('ListCategoryUseCase', () => {
         slug: 'marketing-digital',
         description: 'Leads de marketing',
         priority: 2,
-        keywords: 'marketing,digital',
+        scoreBonus: 15,
+        keywords: ['marketing', 'digital'],
         color: '#00FF00'
       })
     })
