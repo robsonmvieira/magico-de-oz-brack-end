@@ -204,6 +204,11 @@ export class LeadEntity extends AggregateRoot {
       leadCategoryId: new LeadCategoryId(cmd.leadCategoryId),
       companyName: NameVO.create(cmd.companyName),
       source: cmd.source,
+      tradeName: cmd.tradeName,
+      phone: cmd.phone ? PhoneVO.create(cmd.phone) : undefined,
+      email: cmd.email ? EmailVO.create(cmd.email) : undefined,
+      website: cmd.website,
+      address: cmd.address ? AddressVO.create(cmd.address) : undefined,
       decisionMakers: [],
       enrichmentStatus: EnrichmentStatusVO.create({
         googleMaps: { enriched: false },
