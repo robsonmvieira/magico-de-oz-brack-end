@@ -1,13 +1,5 @@
 import { Model } from '@modules/shared/domain/entities/models'
-import {
-  pgTable,
-  text,
-  integer,
-  uuid,
-  jsonb,
-  real,
-  pgEnum
-} from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, jsonb, pgEnum } from 'drizzle-orm/pg-core'
 import { LeadCategorySchema } from './lead-category.model'
 
 // Enums para Postgres

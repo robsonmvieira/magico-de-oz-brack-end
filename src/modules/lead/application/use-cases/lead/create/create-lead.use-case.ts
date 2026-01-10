@@ -1,5 +1,8 @@
 import { Inject, Injectable, HttpStatus } from '@nestjs/common'
-import { ILeadRepository, ILeadCategoryRepository } from '@modules/lead/domain/repositories'
+import {
+  ILeadRepository,
+  ILeadCategoryRepository
+} from '@modules/lead/domain/repositories'
 import { LeadEntity } from '@modules/lead/domain/entities/lead.entity'
 import { LeadMapper } from '@modules/lead/application/mappers/lead.mapper'
 import { ModelOutput } from '@modules/core/application/use-cases/common'
@@ -14,7 +17,9 @@ export class CreateLeadUseCase {
   @Inject('ILeadCategoryRepository')
   private readonly categoryRepo: ILeadCategoryRepository
 
-  async execute(input: CreateLeadInput): Promise<ModelOutput<CreateLeadOutput>> {
+  async execute(
+    input: CreateLeadInput
+  ): Promise<ModelOutput<CreateLeadOutput>> {
     try {
       // Validate input
       const validationErrors = CreateLeadDtoValidator.validate(input)
@@ -28,7 +33,9 @@ export class CreateLeadUseCase {
       }
 
       // Check if category exists
-      const categoryExists = await this.categoryRepo.exists(input.leadCategoryId)
+      const categoryExists = await this.categoryRepo.exists(
+        input.leadCategoryId
+      )
       if (!categoryExists) {
         return new ModelOutput<CreateLeadOutput>({
           data: null,
@@ -39,12 +46,16 @@ export class CreateLeadUseCase {
       }
 
       // Check if company name already exists
-      const companyExists = await this.repo.existsByCompanyName(input.companyName)
+      const companyExists = await this.repo.existsByCompanyName(
+        input.companyName
+      )
       if (companyExists) {
         return new ModelOutput<CreateLeadOutput>({
           data: null,
           hasError: true,
-          error: { companyName: ['Lead with this company name already exists'] },
+          error: {
+            companyName: ['Lead with this company name already exists']
+          },
           statusCode: HttpStatus.CONFLICT
         })
       }

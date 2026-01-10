@@ -1,12 +1,18 @@
 import { LeadInMemoryRepository } from './lead-in-memory.repository'
 import { NewLeadModel } from '@modules/lead/domain/models'
-import { LeadStage, LeadTemperature, LeadSource } from '@modules/lead/domain/enums'
+import {
+  LeadStage,
+  LeadTemperature,
+  LeadSource
+} from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
 
 describe('LeadInMemoryRepository', () => {
   let repository: LeadInMemoryRepository
 
-  const createValidLead = (overrides: Partial<NewLeadModel> = {}): NewLeadModel => ({
+  const createValidLead = (
+    overrides: Partial<NewLeadModel> = {}
+  ): NewLeadModel => ({
     id: randomUUID(),
     leadCategoryId: randomUUID(),
     companyName: 'Empresa ABC LTDA',
@@ -85,7 +91,9 @@ describe('LeadInMemoryRepository', () => {
       await repository.update(lead.id!, { tradeName: 'ABC Tech' })
 
       const updated = await repository.findById(lead.id!)
-      expect(updated?.updatedAt?.getTime()).toBeGreaterThan(originalUpdatedAt?.getTime() ?? 0)
+      expect(updated?.updatedAt?.getTime()).toBeGreaterThan(
+        originalUpdatedAt?.getTime() ?? 0
+      )
     })
   })
 
@@ -240,9 +248,15 @@ describe('LeadInMemoryRepository', () => {
 
   describe('findByTemperature', () => {
     it('should find leads by temperature', async () => {
-      await repository.save(createValidLead({ temperature: LeadTemperature.HOT }))
-      await repository.save(createValidLead({ temperature: LeadTemperature.HOT }))
-      await repository.save(createValidLead({ temperature: LeadTemperature.COLD }))
+      await repository.save(
+        createValidLead({ temperature: LeadTemperature.HOT })
+      )
+      await repository.save(
+        createValidLead({ temperature: LeadTemperature.HOT })
+      )
+      await repository.save(
+        createValidLead({ temperature: LeadTemperature.COLD })
+      )
 
       const found = await repository.findByTemperature(LeadTemperature.HOT)
 
@@ -276,7 +290,9 @@ describe('LeadInMemoryRepository', () => {
       })
       await repository.save(lead)
 
-      const found = await repository.findByGooglePlaceId('ChIJrTLr-GyuEmsRBfy61i59si0')
+      const found = await repository.findByGooglePlaceId(
+        'ChIJrTLr-GyuEmsRBfy61i59si0'
+      )
 
       expect(found).not.toBeNull()
       expect(found?.googleMapsData?.placeId).toBe('ChIJrTLr-GyuEmsRBfy61i59si0')
