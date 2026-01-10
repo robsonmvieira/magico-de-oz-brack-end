@@ -2,6 +2,7 @@ import { Inject, Injectable, HttpStatus } from '@nestjs/common'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadMapper } from '@modules/lead/application/mappers/lead.mapper'
 import { ModelOutput } from '@modules/core/application/use-cases/common'
+import { IdParamDtoValidator } from '@modules/lead/application/dtos'
 import { GetLeadOutput } from './dtos'
 
 @Injectable()
@@ -11,18 +12,18 @@ export class GetLeadByIdUseCase {
 
   async execute(id: string): Promise<ModelOutput<GetLeadOutput>> {
     try {
-      // Validate UUID format
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(id)) {
+      // Validate input using DTO
+      const validationErrors = IdParamDtoValidator.validate({ id })
+      if (Object.keys(validationErrors).length !== 0) {
         return new ModelOutput<GetLeadOutput>({
           data: null,
           hasError: true,
-          error: { id: ['Invalid UUID format'] },
+          error: validationErrors,
           statusCode: HttpStatus.BAD_REQUEST
         })
       }
 
+      // Business rule: Find lead
       const lead = await this.repo.findById(id)
 
       if (!lead) {
