@@ -10,27 +10,10 @@ import {
   SlugVO
 } from '../valueObject'
 import { LeadCategoryFakeBuilder } from '@modules/lead/tests/lead-category.fake-builder'
-import { AggregateRoot } from '@modules/core/domain/entities'
-
-export interface ISectorDefinition {
-  code: string
-  name: string
-  keywords: string[]
-  parentCode?: string // Para hierarquia
-}
-
-export interface IScoreBreakdown {
-  factor: string
-  points: number
-  reason: string
-}
-
-export interface ICategoryScores {
-  completeness: number // 0-100
-  icpFit: number // 0-100
-  dataQuality: number // 0-100
-  overall: number // 0-100 (média ponderada)
-}
+import {
+  AggregateRoot,
+  DefaultEntityProps
+} from '@modules/core/domain/entities'
 
 type CreateLeadCategoryCommand = {
   name: string
@@ -40,7 +23,8 @@ type CreateLeadCategoryCommand = {
   keywords?: string[]
   color?: string
 }
-type LeadCategoryProps = {
+interface LeadCategoryProps extends DefaultEntityProps {
+  id?: LeadCategoryId
   name: string
   slug: string
   description?: string
@@ -48,14 +32,6 @@ type LeadCategoryProps = {
   scoreBonus: number
   keywords: string[]
   color: string
-
-  id?: LeadCategoryId
-  created_at?: Date
-  updated_at?: Date
-  deleted_at?: Date
-  is_active?: boolean
-  is_deleted?: boolean
-  is_blocked?: boolean
 }
 
 export class LeadCategoryEntity extends AggregateRoot {

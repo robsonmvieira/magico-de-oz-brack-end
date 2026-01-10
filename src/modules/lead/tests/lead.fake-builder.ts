@@ -319,9 +319,7 @@ export class LeadFakeBuilder<TBuild = any> {
     return this
   }
 
-  withCnpjWsData(
-    cnpjWsData: PropertyOrFactory<CnpjDataVO | undefined>
-  ): this {
+  withCnpjWsData(cnpjWsData: PropertyOrFactory<CnpjDataVO | undefined>): this {
     this._cnpjWsData = cnpjWsData
     return this
   }
