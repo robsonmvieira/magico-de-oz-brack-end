@@ -1,2 +1,5 @@
 export * from './data-quality-level.enum'
 export * from './lead-source.enum'
+export * from './lead-temperature.enum'
+export * from './lead-stage.enum'
+export * from './company-size.enum'

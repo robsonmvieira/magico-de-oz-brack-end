@@ -6,5 +6,7 @@ export enum LeadStage {
   MEETING_SCHEDULED = 'meeting_scheduled',
   CONVERTED = 'converted',
   LOST = 'lost',
-  NURTURING = 'nurturing'
+  NURTURING = 'nurturing',
+  DISCARDED = 'discarded',
+  READY = 'ready'
 }
