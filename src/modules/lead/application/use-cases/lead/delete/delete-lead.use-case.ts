@@ -1,21 +1,20 @@
 import { Inject, Injectable, HttpStatus } from '@nestjs/common'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
-import { LeadMapper } from '@modules/lead/application/mappers/lead.mapper'
 import { ModelOutput } from '@modules/core/application/use-cases/common'
 import { IdParamDtoValidator } from '@modules/lead/application/dtos'
-import { GetLeadOutput } from './dtos'
+import { DeleteLeadOutput } from './dtos'
 
 @Injectable()
-export class GetLeadByIdUseCase {
+export class DeleteLeadUseCase {
   @Inject('ILeadRepository')
   private readonly repo: ILeadRepository
 
-  async execute(id: string): Promise<ModelOutput<GetLeadOutput>> {
+  async execute(id: string): Promise<ModelOutput<DeleteLeadOutput>> {
     try {
       // Validate input using DTO
       const validationErrors = IdParamDtoValidator.validate({ id })
       if (Object.keys(validationErrors).length !== 0) {
-        return new ModelOutput<GetLeadOutput>({
+        return new ModelOutput<DeleteLeadOutput>({
           data: null,
           hasError: true,
           error: validationErrors,
@@ -23,11 +22,11 @@ export class GetLeadByIdUseCase {
         })
       }
 
-      // Business rule: Find lead
-      const lead = await this.repo.findById(id)
+      // Business rule: Find existing lead
+      const existingLead = await this.repo.findById(id)
 
-      if (!lead) {
-        return new ModelOutput<GetLeadOutput>({
+      if (!existingLead) {
+        return new ModelOutput<DeleteLeadOutput>({
           data: null,
           hasError: true,
           error: { id: ['Lead not found'] },
@@ -35,14 +34,17 @@ export class GetLeadByIdUseCase {
         })
       }
 
-      return new ModelOutput<GetLeadOutput>({
-        data: LeadMapper.toOutput(lead) as GetLeadOutput,
+      // Delete in repository (soft delete)
+      await this.repo.delete(existingLead)
+
+      return new ModelOutput<DeleteLeadOutput>({
+        data: { id, deleted: true },
         hasError: false,
         error: null,
         statusCode: HttpStatus.OK
       })
     } catch (error) {
-      return new ModelOutput<GetLeadOutput>({
+      return new ModelOutput<DeleteLeadOutput>({
         data: null,
         hasError: true,
         error: { message: [error.message || 'Internal server error'] },
