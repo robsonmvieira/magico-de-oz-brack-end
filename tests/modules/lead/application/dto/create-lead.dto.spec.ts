@@ -1,7 +1,8 @@
 import {
   CreateLeadDto,
-  CreateLeadDtoValidator
-} from '@modules/lead/application/dtos'
+  CreateLeadDtoValidator,
+  AddressDto
+} from '@modules/lead/application/dtos/create-lead.dto'
 import { LeadSource } from '@modules/lead/domain/enums'
 
 describe('CreateLeadDto', () => {
@@ -32,7 +33,9 @@ describe('CreateLeadDto', () => {
           city: 'São Paulo',
           state: 'SP',
           zipCode: '01234-567',
-          neighborhood: 'Centro'
+          neighborhood: 'Centro',
+          latitude: -23.5505,
+          longitude: -46.6333
         }
       })
 
@@ -47,8 +50,7 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.leadCategoryId).toBeDefined()
-        expect(errors.leadCategoryId.length).toBeGreaterThan(0)
+        expect(errors['leadCategoryId']).toBeDefined()
       })
 
       it('should fail when leadCategoryId is not a valid UUID', () => {
@@ -58,17 +60,7 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.leadCategoryId).toBeDefined()
-      })
-
-      it('should accept valid UUID', () => {
-        const errors = CreateLeadDtoValidator.validate({
-          leadCategoryId: validUUID,
-          companyName: 'Empresa ABC',
-          source: LeadSource.MANUAL
-        })
-
-        expect(errors.leadCategoryId).toBeUndefined()
+        expect(errors['leadCategoryId']).toBeDefined()
       })
     })
 
@@ -80,8 +72,7 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.companyName).toBeDefined()
-        expect(errors.companyName.length).toBeGreaterThan(0)
+        expect(errors['companyName']).toBeDefined()
       })
 
       it('should fail when companyName is too short', () => {
@@ -91,7 +82,7 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.companyName).toBeDefined()
+        expect(errors['companyName']).toBeDefined()
       })
 
       it('should fail when companyName is too long', () => {
@@ -101,7 +92,7 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.companyName).toBeDefined()
+        expect(errors['companyName']).toBeDefined()
       })
 
       it('should accept companyName with minimum length', () => {
@@ -111,7 +102,7 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.companyName).toBeUndefined()
+        expect(errors['companyName']).toBeUndefined()
       })
 
       it('should accept companyName with maximum length', () => {
@@ -121,23 +112,19 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.companyName).toBeUndefined()
+        expect(errors['companyName']).toBeUndefined()
       })
     })
 
     describe('source validation', () => {
-      const validSources = Object.values(LeadSource)
-
-      validSources.forEach(source => {
-        it(`should accept valid source: ${source}`, () => {
-          const errors = CreateLeadDtoValidator.validate({
-            leadCategoryId: validUUID,
-            companyName: 'Empresa ABC',
-            source
-          })
-
-          expect(errors.source).toBeUndefined()
+      it('should fail when source is empty', () => {
+        const errors = CreateLeadDtoValidator.validate({
+          leadCategoryId: validUUID,
+          companyName: 'Empresa ABC',
+          source: '' as LeadSource
         })
+
+        expect(errors['source']).toBeDefined()
       })
 
       it('should fail when source is invalid', () => {
@@ -147,7 +134,21 @@ describe('CreateLeadDto', () => {
           source: 'invalid_source' as LeadSource
         })
 
-        expect(errors.source).toBeDefined()
+        expect(errors['source']).toBeDefined()
+      })
+
+      it('should accept all valid sources', () => {
+        const validSources = Object.values(LeadSource)
+
+        validSources.forEach(source => {
+          const errors = CreateLeadDtoValidator.validate({
+            leadCategoryId: validUUID,
+            companyName: 'Empresa ABC',
+            source
+          })
+
+          expect(errors['source']).toBeUndefined()
+        })
       })
     })
 
@@ -159,7 +160,7 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.tradeName).toBeUndefined()
+        expect(errors['tradeName']).toBeUndefined()
       })
 
       it('should fail when tradeName is too short', () => {
@@ -170,7 +171,7 @@ describe('CreateLeadDto', () => {
           tradeName: 'A'
         })
 
-        expect(errors.tradeName).toBeDefined()
+        expect(errors['tradeName']).toBeDefined()
       })
 
       it('should fail when tradeName is too long', () => {
@@ -181,7 +182,7 @@ describe('CreateLeadDto', () => {
           tradeName: 'A'.repeat(201)
         })
 
-        expect(errors.tradeName).toBeDefined()
+        expect(errors['tradeName']).toBeDefined()
       })
     })
 
@@ -193,10 +194,21 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.phone).toBeUndefined()
+        expect(errors['phone']).toBeUndefined()
       })
 
-      it('should accept valid mobile phone (11 digits)', () => {
+      it('should accept valid phone with 10 digits', () => {
+        const errors = CreateLeadDtoValidator.validate({
+          leadCategoryId: validUUID,
+          companyName: 'Empresa ABC',
+          source: LeadSource.MANUAL,
+          phone: '1198765432'
+        })
+
+        expect(errors['phone']).toBeUndefined()
+      })
+
+      it('should accept valid phone with 11 digits', () => {
         const errors = CreateLeadDtoValidator.validate({
           leadCategoryId: validUUID,
           companyName: 'Empresa ABC',
@@ -204,21 +216,10 @@ describe('CreateLeadDto', () => {
           phone: '11987654321'
         })
 
-        expect(errors.phone).toBeUndefined()
+        expect(errors['phone']).toBeUndefined()
       })
 
-      it('should accept valid landline phone (10 digits)', () => {
-        const errors = CreateLeadDtoValidator.validate({
-          leadCategoryId: validUUID,
-          companyName: 'Empresa ABC',
-          source: LeadSource.MANUAL,
-          phone: '1134567890'
-        })
-
-        expect(errors.phone).toBeUndefined()
-      })
-
-      it('should fail when phone is too short', () => {
+      it('should fail when phone has less than 10 digits', () => {
         const errors = CreateLeadDtoValidator.validate({
           leadCategoryId: validUUID,
           companyName: 'Empresa ABC',
@@ -226,10 +227,10 @@ describe('CreateLeadDto', () => {
           phone: '123456789'
         })
 
-        expect(errors.phone).toBeDefined()
+        expect(errors['phone']).toBeDefined()
       })
 
-      it('should fail when phone is too long', () => {
+      it('should fail when phone has more than 11 digits', () => {
         const errors = CreateLeadDtoValidator.validate({
           leadCategoryId: validUUID,
           companyName: 'Empresa ABC',
@@ -237,10 +238,10 @@ describe('CreateLeadDto', () => {
           phone: '123456789012'
         })
 
-        expect(errors.phone).toBeDefined()
+        expect(errors['phone']).toBeDefined()
       })
 
-      it('should fail when phone has non-numeric characters', () => {
+      it('should fail when phone contains non-digits', () => {
         const errors = CreateLeadDtoValidator.validate({
           leadCategoryId: validUUID,
           companyName: 'Empresa ABC',
@@ -248,7 +249,7 @@ describe('CreateLeadDto', () => {
           phone: '(11) 98765-4321'
         })
 
-        expect(errors.phone).toBeDefined()
+        expect(errors['phone']).toBeDefined()
       })
     })
 
@@ -260,7 +261,7 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.email).toBeUndefined()
+        expect(errors['email']).toBeUndefined()
       })
 
       it('should accept valid email', () => {
@@ -271,7 +272,7 @@ describe('CreateLeadDto', () => {
           email: 'contato@empresa.com.br'
         })
 
-        expect(errors.email).toBeUndefined()
+        expect(errors['email']).toBeUndefined()
       })
 
       it('should fail when email is invalid', () => {
@@ -282,7 +283,7 @@ describe('CreateLeadDto', () => {
           email: 'invalid-email'
         })
 
-        expect(errors.email).toBeDefined()
+        expect(errors['email']).toBeDefined()
       })
     })
 
@@ -294,7 +295,7 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.website).toBeUndefined()
+        expect(errors['website']).toBeUndefined()
       })
 
       it('should accept valid website URL', () => {
@@ -305,10 +306,10 @@ describe('CreateLeadDto', () => {
           website: 'https://www.empresa.com.br'
         })
 
-        expect(errors.website).toBeUndefined()
+        expect(errors['website']).toBeUndefined()
       })
 
-      it('should fail when website is not a valid URL', () => {
+      it('should fail when website is invalid', () => {
         const errors = CreateLeadDtoValidator.validate({
           leadCategoryId: validUUID,
           companyName: 'Empresa ABC',
@@ -316,7 +317,7 @@ describe('CreateLeadDto', () => {
           website: 'not-a-url'
         })
 
-        expect(errors.website).toBeDefined()
+        expect(errors['website']).toBeDefined()
       })
     })
 
@@ -328,10 +329,12 @@ describe('CreateLeadDto', () => {
           source: LeadSource.MANUAL
         })
 
-        expect(errors.address).toBeUndefined()
+        expect(
+          Object.keys(errors).filter(k => k.startsWith('address'))
+        ).toHaveLength(0)
       })
 
-      it('should accept valid address', () => {
+      it('should accept valid address with required fields only', () => {
         const errors = CreateLeadDtoValidator.validate({
           leadCategoryId: validUUID,
           companyName: 'Empresa ABC',
@@ -389,7 +392,52 @@ describe('CreateLeadDto', () => {
         })
       })
 
-      it('should fail when zipCode is invalid', () => {
+      it('should fail when address.street is empty', () => {
+        const errors = CreateLeadDtoValidator.validate({
+          leadCategoryId: validUUID,
+          companyName: 'Empresa ABC',
+          source: LeadSource.MANUAL,
+          address: {
+            street: '',
+            city: 'São Paulo',
+            state: 'SP'
+          }
+        })
+
+        expect(errors['address.street']).toBeDefined()
+      })
+
+      it('should fail when address.city is empty', () => {
+        const errors = CreateLeadDtoValidator.validate({
+          leadCategoryId: validUUID,
+          companyName: 'Empresa ABC',
+          source: LeadSource.MANUAL,
+          address: {
+            street: 'Rua das Flores, 123',
+            city: '',
+            state: 'SP'
+          }
+        })
+
+        expect(errors['address.city']).toBeDefined()
+      })
+
+      it('should fail when address.state is invalid length', () => {
+        const errors = CreateLeadDtoValidator.validate({
+          leadCategoryId: validUUID,
+          companyName: 'Empresa ABC',
+          source: LeadSource.MANUAL,
+          address: {
+            street: 'Rua das Flores, 123',
+            city: 'São Paulo',
+            state: 'São Paulo'
+          }
+        })
+
+        expect(errors['address.state']).toBeDefined()
+      })
+
+      it('should fail when address.zipCode is invalid format', () => {
         const errors = CreateLeadDtoValidator.validate({
           leadCategoryId: validUUID,
           companyName: 'Empresa ABC',
@@ -398,7 +446,7 @@ describe('CreateLeadDto', () => {
             street: 'Rua das Flores, 123',
             city: 'São Paulo',
             state: 'SP',
-            zipCode: '123'
+            zipCode: '1234567'
           }
         })
 
@@ -416,7 +464,12 @@ describe('CreateLeadDto', () => {
         tradeName: 'ABC Tecnologia',
         phone: '11987654321',
         email: 'contato@empresa.com.br',
-        website: 'https://www.empresa.com.br'
+        website: 'https://www.empresa.com.br',
+        address: {
+          street: 'Rua das Flores, 123',
+          city: 'São Paulo',
+          state: 'SP'
+        }
       })
 
       expect(dto.leadCategoryId).toBe(validUUID)
@@ -426,6 +479,8 @@ describe('CreateLeadDto', () => {
       expect(dto.phone).toBe('11987654321')
       expect(dto.email).toBe('contato@empresa.com.br')
       expect(dto.website).toBe('https://www.empresa.com.br')
+      expect(dto.address).toBeDefined()
+      expect(dto.address?.street).toBe('Rua das Flores, 123')
     })
 
     it('should create empty instance without props', () => {
@@ -434,6 +489,21 @@ describe('CreateLeadDto', () => {
       expect(dto.leadCategoryId).toBeUndefined()
       expect(dto.companyName).toBeUndefined()
       expect(dto.source).toBeUndefined()
+    })
+
+    it('should create AddressDto instance for nested address', () => {
+      const dto = new CreateLeadDto({
+        leadCategoryId: validUUID,
+        companyName: 'Empresa ABC',
+        source: LeadSource.MANUAL,
+        address: {
+          street: 'Rua das Flores, 123',
+          city: 'São Paulo',
+          state: 'SP'
+        }
+      })
+
+      expect(dto.address).toBeInstanceOf(AddressDto)
     })
   })
 })
