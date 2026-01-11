@@ -4,11 +4,16 @@ import { GetCategoryByIdUseCase } from '@modules/lead/application/use-cases/lead
 import { UpdateCategoryUseCase } from '@modules/lead/application/use-cases/lead-category/update/update-category.use-case'
 import { DeleteCategoryUseCase } from '@modules/lead/application/use-cases/lead-category/delete/delete-category.use-case'
 import { LeadCategoryRepository } from '../repositories'
+import { RedisCacheRepository } from '@modules/shared/infra/cache'
 
 const REPOSITORY_PROVIDERS = {
   ILeadCategoryRepository: {
     provide: 'ILeadCategoryRepository',
     useClass: LeadCategoryRepository
+  },
+  ICacheRepository: {
+    provide: 'ICacheRepository',
+    useClass: RedisCacheRepository
   }
 } as const
 

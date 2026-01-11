@@ -3,10 +3,18 @@ import { LeadInMemoryRepository } from 'tests/modules/lead/infra/repositories/le
 import { LeadSource } from '@modules/lead/domain/enums'
 import { HttpStatus } from '@nestjs/common'
 import { randomUUID } from 'crypto'
+import { ICacheRepository } from '@modules/core/domain/repositories'
+
+const createMockCacheRepository = (): jest.Mocked<ICacheRepository> => ({
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue(undefined),
+  delete: jest.fn().mockResolvedValue(undefined)
+})
 
 describe('ListLeadUseCase', () => {
   let useCase: ListLeadUseCase
   let repository: LeadInMemoryRepository
+  let cacheRepository: jest.Mocked<ICacheRepository>
 
   const createValidLead = (overrides = {}) => ({
     id: randomUUID(),
@@ -31,8 +39,10 @@ describe('ListLeadUseCase', () => {
 
   beforeEach(() => {
     repository = new LeadInMemoryRepository()
+    cacheRepository = createMockCacheRepository()
     useCase = new ListLeadUseCase()
     ;(useCase as any).repo = repository
+    ;(useCase as any).cacheRepo = cacheRepository
   })
 
   describe('execute', () => {
@@ -107,6 +117,7 @@ describe('ListLeadUseCase', () => {
         findAll: jest.fn().mockRejectedValue(new Error('Database error'))
       }
       ;(useCase as any).repo = errorRepo
+      ;(useCase as any).cacheRepo = cacheRepository
 
       const result = await useCase.execute()
 
@@ -114,6 +125,29 @@ describe('ListLeadUseCase', () => {
       expect(result.hasError).toBe(true)
       expect(result.error.message).toContain('Database error')
       expect(result.statusCode).toBe(HttpStatus.INTERNAL_SERVER_ERROR)
+    })
+
+    it('should return cached data when available', async () => {
+      const cachedLeads = [{ id: randomUUID(), companyName: 'Cached Company' }]
+      cacheRepository.get.mockResolvedValue(JSON.stringify(cachedLeads))
+
+      const result = await useCase.execute()
+
+      expect(result.ok).toBe(true)
+      expect(result.data).toEqual(cachedLeads)
+      expect(cacheRepository.get).toHaveBeenCalledWith('leads')
+    })
+
+    it('should cache data after fetching from repository', async () => {
+      await repository.save(createValidLead({ companyName: 'Empresa 1' }))
+
+      await useCase.execute()
+
+      expect(cacheRepository.set).toHaveBeenCalledWith(
+        'leads',
+        expect.any(String),
+        30
+      )
     })
   })
 })
