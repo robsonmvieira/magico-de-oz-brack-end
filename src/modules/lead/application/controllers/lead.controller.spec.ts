@@ -5,7 +5,8 @@ import {
   CreateLeadUseCase,
   GetLeadByIdUseCase,
   UpdateLeadUseCase,
-  DeleteLeadUseCase
+  DeleteLeadUseCase,
+  SearchLeadUseCase
 } from '../use-cases/lead'
 
 describe('LeadController', () => {
@@ -33,6 +34,10 @@ describe('LeadController', () => {
         },
         {
           provide: DeleteLeadUseCase,
+          useValue: { execute: jest.fn() }
+        },
+        {
+          provide: SearchLeadUseCase,
           useValue: { execute: jest.fn() }
         }
       ]
