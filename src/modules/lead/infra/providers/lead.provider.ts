@@ -4,11 +4,16 @@ import { GetLeadByIdUseCase } from '@modules/lead/application/use-cases/lead/get
 import { UpdateLeadUseCase } from '@modules/lead/application/use-cases/lead/update/update-lead.use-case'
 import { DeleteLeadUseCase } from '@modules/lead/application/use-cases/lead/delete/delete-lead.use-case'
 import { LeadRepository } from '../repositories'
+import { RedisCacheRepository } from '@modules/shared/infra/cache'
 
 const REPOSITORY_PROVIDERS = {
   ILeadRepository: {
     provide: 'ILeadRepository',
     useClass: LeadRepository
+  },
+  ICacheRepository: {
+    provide: 'ICacheRepository',
+    useClass: RedisCacheRepository
   }
 } as const
 
