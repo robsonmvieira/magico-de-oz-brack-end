@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   HttpStatus,
   ParseUUIDPipe,
   Inject,
@@ -17,7 +18,8 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
-  ApiBody
+  ApiBody,
+  ApiQuery
 } from '@nestjs/swagger'
 import { CreateLeadDto, UpdateLeadDto } from '../dtos'
 import {
@@ -25,7 +27,8 @@ import {
   CreateLeadUseCase,
   GetLeadByIdUseCase,
   UpdateLeadUseCase,
-  DeleteLeadUseCase
+  DeleteLeadUseCase,
+  SearchLeadUseCase
 } from '../use-cases/lead'
 
 @ApiTags('Leads')
@@ -45,6 +48,9 @@ export class LeadController {
 
   @Inject(DeleteLeadUseCase)
   private readonly deleteLeadUseCase: DeleteLeadUseCase
+
+  @Inject(SearchLeadUseCase)
+  private readonly searchLeadUseCase: SearchLeadUseCase
 
   @Post()
   @ApiOperation({
@@ -94,6 +100,45 @@ export class LeadController {
   })
   async findAll(@Res() res: Response) {
     const result = await this.listLeadUseCase.execute()
+    return res.status(result.statusCode).json(result)
+  }
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Search leads on Google Maps',
+    description:
+      'Searches for businesses on Google Maps based on query and location'
+  })
+  @ApiQuery({
+    name: 'query',
+    description: 'Search query (e.g., "restaurants", "dentists")',
+    type: 'string',
+    required: true
+  })
+  @ApiQuery({
+    name: 'location',
+    description: 'Location to search in (e.g., "São Paulo, SP")',
+    type: 'string',
+    required: true
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Search results retrieved successfully'
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid search parameters'
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Error while searching Google Maps'
+  })
+  async search(
+    @Query('query') query: string,
+    @Query('location') location: string,
+    @Res() res: Response
+  ) {
+    const result = await this.searchLeadUseCase.execute(query, location)
     return res.status(result.statusCode).json(result)
   }
 

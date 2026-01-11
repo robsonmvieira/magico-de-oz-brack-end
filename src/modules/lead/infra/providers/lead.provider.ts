@@ -3,10 +3,16 @@ import { CreateLeadUseCase } from '@modules/lead/application/use-cases/lead/crea
 import { GetLeadByIdUseCase } from '@modules/lead/application/use-cases/lead/get-by-id/get-lead-by-id.use-case'
 import { UpdateLeadUseCase } from '@modules/lead/application/use-cases/lead/update/update-lead.use-case'
 import { DeleteLeadUseCase } from '@modules/lead/application/use-cases/lead/delete/delete-lead.use-case'
+import { SearchLeadUseCase } from '@modules/lead/application/use-cases/lead/search/search-lead.use-case'
 import { LeadRepository } from '../repositories'
 import { RedisCacheRepository } from '@modules/shared/infra/cache'
+import { SerperGoogleMapsProvider } from '../services'
 
 const REPOSITORY_PROVIDERS = {
+  IGoogleMapsProvider: {
+    provide: 'IGoogleMapsProvider',
+    useClass: SerperGoogleMapsProvider
+  },
   ILeadRepository: {
     provide: 'ILeadRepository',
     useClass: LeadRepository
@@ -37,6 +43,10 @@ const USE_CASES_PROVIDERS = {
   DeleteLeadUseCase: {
     provide: DeleteLeadUseCase,
     useClass: DeleteLeadUseCase
+  },
+  SearchLeadUseCase: {
+    provide: SearchLeadUseCase,
+    useClass: SearchLeadUseCase
   }
 } as const
 
