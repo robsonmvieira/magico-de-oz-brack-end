@@ -43,3 +43,5 @@ lerna-debug.log*
 .env.local
 .history
 .postgres_data_test
+CLAUDE.md
+.claude
