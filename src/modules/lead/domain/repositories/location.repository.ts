@@ -11,4 +11,5 @@ export interface ILocationRepository {
   findByTargetType(targetType: string): Promise<LocationModel[]>
   exists(id: number): Promise<boolean>
   existsByGoogleId(googleId: number): Promise<boolean>
+  searchByName(searchTerm: string, limit?: number): Promise<LocationModel[]>
 }

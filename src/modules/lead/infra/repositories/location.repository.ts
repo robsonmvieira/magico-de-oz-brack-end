@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { DRIZZLE, DrizzleDB } from '@modules/database'
 import { ILocationRepository } from '@modules/lead/domain/repositories'
 import {
@@ -98,5 +98,16 @@ export class LocationRepository implements ILocationRepository {
       .limit(1)
 
     return result.length > 0
+  }
+
+  async searchByName(searchTerm: string, limit = 10): Promise<LocationModel[]> {
+    const result = await this.db.execute(sql`
+      SELECT * FROM locations
+      WHERE name_normalized ILIKE '%' || unaccent(lower(${searchTerm})) || '%'
+      ORDER BY similarity(name_normalized, unaccent(lower(${searchTerm}))) DESC
+      LIMIT ${limit}
+    `)
+
+    return result.rows as LocationModel[]
   }
 }
