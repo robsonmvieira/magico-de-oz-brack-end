@@ -1,7 +1,3 @@
-import { AggregateRoot } from '@modules/core/domain/entities'
-import { LocationId } from '../valueObject'
-import { ValueObject } from '@modules/core/domain/valueObject'
-
 export type CreateLocationCommand = {
   name: string
   canonicalName: string
@@ -11,48 +7,31 @@ export type CreateLocationCommand = {
 }
 
 interface LocationProps {
-  id?: LocationId
+  id?: number
   name: string
   canonicalName: string
   googleId: number
   countryCode: string
   targetType: string
-  created_at?: Date
-  updated_at?: Date
-  is_active?: boolean
-  is_deleted?: boolean
-  is_blocked?: boolean
-  deleted_at?: Date
 }
-export class LocationEntity extends AggregateRoot {
-  _name: string
-  _canonicalName: string
-  _googleId: number
-  _countryCode: string
-  _targetType: string
+
+export class LocationEntity {
+  private readonly _id?: number
+  private readonly _name: string
+  private readonly _canonicalName: string
+  private readonly _googleId: number
+  private readonly _countryCode: string
+  private readonly _targetType: string
+
   private constructor({
     id,
     name,
     canonicalName,
     googleId,
     countryCode,
-    targetType,
-    created_at,
-    updated_at,
-    is_active,
-    is_deleted,
-    is_blocked,
-    deleted_at
+    targetType
   }: LocationProps) {
-    super(
-      id,
-      created_at,
-      updated_at,
-      is_active,
-      is_deleted,
-      is_blocked,
-      deleted_at
-    )
+    this._id = id
     this._name = name
     this._canonicalName = canonicalName
     this._googleId = googleId
@@ -60,28 +39,41 @@ export class LocationEntity extends AggregateRoot {
     this._targetType = targetType
   }
 
-  static create({
-    name,
-    canonicalName,
-    googleId,
-    countryCode,
-    targetType
-  }: CreateLocationCommand) {
-    return new LocationEntity({
-      name,
-      canonicalName,
-      googleId,
-      countryCode,
-      targetType
-    })
+  static create(props: CreateLocationCommand): LocationEntity {
+    return new LocationEntity(props)
   }
 
-  get entity_id(): ValueObject {
-    return this.id
+  static restore(props: LocationProps): LocationEntity {
+    return new LocationEntity(props)
   }
+
+  get id(): number | undefined {
+    return this._id
+  }
+
+  get name(): string {
+    return this._name
+  }
+
+  get canonicalName(): string {
+    return this._canonicalName
+  }
+
+  get googleId(): number {
+    return this._googleId
+  }
+
+  get countryCode(): string {
+    return this._countryCode
+  }
+
+  get targetType(): string {
+    return this._targetType
+  }
+
   toJSON() {
     return {
-      id: this.id.id,
+      id: this._id,
       name: this._name,
       canonicalName: this._canonicalName,
       googleId: this._googleId,
