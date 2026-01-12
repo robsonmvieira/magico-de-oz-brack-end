@@ -8,6 +8,7 @@ import {
   DeleteLeadUseCase,
   SearchLeadUseCase
 } from '../use-cases/lead'
+import { SearchLocationUseCase } from '../use-cases/lead/search-location/search-location.use-case'
 
 describe('LeadController', () => {
   let controller: LeadController
@@ -38,6 +39,10 @@ describe('LeadController', () => {
         },
         {
           provide: SearchLeadUseCase,
+          useValue: { execute: jest.fn() }
+        },
+        {
+          provide: SearchLocationUseCase,
           useValue: { execute: jest.fn() }
         }
       ]
