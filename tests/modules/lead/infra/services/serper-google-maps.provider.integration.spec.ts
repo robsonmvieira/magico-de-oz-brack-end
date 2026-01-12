@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { ConfigModule, ConfigService } from '@nestjs/config'
+import { ConfigModule } from '@nestjs/config'
 import { SerperGoogleMapsProvider } from '@modules/lead/infra/services/serper-google-maps.provider'
 import { IGoogleMapsProvider } from '@modules/lead/domain/services/googlemaps/googlemaps.provider'
 
@@ -32,7 +32,7 @@ describe('SerperGoogleMapsProvider (Integration)', () => {
 
   describe('search', () => {
     it('should return places for a valid query', async () => {
-      const result = await provider.search('restaurantes', 'pt-BR')
+      const result = await provider.search('restaurantes', 'BR', 'São Paulo')
 
       expect(result).toBeDefined()
       expect(result.searchParameters).toBeDefined()
@@ -44,7 +44,8 @@ describe('SerperGoogleMapsProvider (Integration)', () => {
     it('should return empty places for an obscure query', async () => {
       const result = await provider.search(
         'xyznonexistentbusiness12345',
-        'pt-BR'
+        'BR',
+        'São Paulo'
       )
 
       expect(result).toBeDefined()
@@ -53,7 +54,7 @@ describe('SerperGoogleMapsProvider (Integration)', () => {
     }, 30000)
 
     it('should include place details in results', async () => {
-      const result = await provider.search('padarias em São Paulo', 'pt-BR')
+      const result = await provider.search('padarias', 'BR', 'São Paulo')
 
       expect(result.places.length).toBeGreaterThan(0)
 
@@ -67,11 +68,11 @@ describe('SerperGoogleMapsProvider (Integration)', () => {
 
   describe('getReviews', () => {
     it('should return reviews for a valid place', async () => {
-      const searchResult = await provider.search('Starbucks São Paulo', 'pt-BR')
+      const searchResult = await provider.search('Starbucks', 'BR', 'São Paulo')
 
       if (searchResult.places.length > 0) {
         const placeId = searchResult.places[0].title
-        const result = await provider.getReviews(placeId, 'pt-BR')
+        const result = await provider.getReviews(placeId, 'BR')
 
         expect(result).toBeDefined()
         expect(result.reviews).toBeDefined()
