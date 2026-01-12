@@ -10,14 +10,14 @@ O Mágico de Oz é um CRM construído com **NestJS** seguindo princípios de **D
 
 ### Stack Tecnológica
 
-| Camada | Tecnologia | Propósito |
-|--------|------------|-----------|
-| Framework | NestJS 11 | Injeção de dependência, módulos, decorators |
-| ORM | Drizzle ORM | Type-safe queries, migrations, schemas |
-| Banco | PostgreSQL 16 | Persistência principal |
-| Cache | Redis | Cache e sessões |
-| Mensageria | RabbitMQ | Eventos de domínio e integração |
-| Testes | Jest + SWC | Testes unitários e integração |
+| Camada     | Tecnologia    | Propósito                                   |
+| ---------- | ------------- | ------------------------------------------- |
+| Framework  | NestJS 11     | Injeção de dependência, módulos, decorators |
+| ORM        | Drizzle ORM   | Type-safe queries, migrations, schemas      |
+| Banco      | PostgreSQL 16 | Persistência principal                      |
+| Cache      | Redis         | Cache e sessões                             |
+| Mensageria | RabbitMQ      | Eventos de domínio e integração             |
+| Testes     | Jest + SWC    | Testes unitários e integração               |
 
 ---
 
@@ -82,6 +82,7 @@ export abstract class ValueObject {
 #### Tipos de Value Objects
 
 **Simples** - Encapsulam um único valor com validação:
+
 ```typescript
 // EmailVO: valida formato, converte para lowercase
 const email = EmailVO.create('User@Example.com')
@@ -89,7 +90,7 @@ email.value // 'user@example.com'
 
 // PhoneVO: valida telefone brasileiro, formata
 const phone = PhoneVO.create('11987654321')
-phone.value     // '11987654321'
+phone.value // '11987654321'
 phone.formatted // '(11) 98765-4321'
 
 // NameVO: valida tamanho (2-100 caracteres)
@@ -97,9 +98,10 @@ const name = NameVO.create('Empresa XYZ')
 ```
 
 **UUID** - Identificadores únicos:
+
 ```typescript
 // UuidVO: gera ou valida UUID v4
-const id = UuidVO.create()              // gera novo
+const id = UuidVO.create() // gera novo
 const id = UuidVO.create('existing-uuid') // valida existente
 
 // Especializados por entidade
@@ -108,16 +110,18 @@ const categoryId = new LeadCategoryId('uuid')
 ```
 
 **Coleção** - Gerenciam listas imutáveis:
+
 ```typescript
 // KeywordsVO: coleção de KeywordVO
 const keywords = KeywordsVO.create(['marketing', 'digital'])
-keywords.add('vendas')      // retorna nova instância
+keywords.add('vendas') // retorna nova instância
 keywords.remove('marketing') // retorna nova instância
 keywords.matchesAny('texto com marketing') // true
 keywords.countMatches('marketing digital vendas') // 3
 ```
 
 **Compostos** - Agregam múltiplos campos:
+
 ```typescript
 // AddressVO: endereço completo
 const address = AddressVO.create({
@@ -132,9 +136,9 @@ const address = AddressVO.create({
 
 // LeadScoreVO: pontuação com pesos
 const score = LeadScoreVO.create({
-  completeness: 75,  // peso 30%
-  icpFit: 80,        // peso 50%
-  engagement: 60     // peso 20%
+  completeness: 75, // peso 30%
+  icpFit: 80, // peso 50%
+  engagement: 60 // peso 20%
 })
 score.total() // cálculo ponderado
 
@@ -284,9 +288,9 @@ enum LeadStage {
 
 // LeadTemperature: temperatura calculada
 enum LeadTemperature {
-  HOT = 'hot',      // score >= 70 ou stage = REPLIED
-  WARM = 'warm',    // score 40-70
-  COLD = 'cold',    // score < 40
+  HOT = 'hot', // score >= 70 ou stage = REPLIED
+  WARM = 'warm', // score 40-70
+  COLD = 'cold', // score < 40
   DISCARDED = 'discarded'
 }
 ```
@@ -320,7 +324,13 @@ export const Model = {
 
 // Enums PostgreSQL
 export const leadSourceEnum = pgEnum('lead_source', [
-  'google_maps', 'apollo', 'hunter', 'linkedin', 'imported', 'manual', 'referral'
+  'google_maps',
+  'apollo',
+  'hunter',
+  'linkedin',
+  'imported',
+  'manual',
+  'referral'
 ])
 
 // Schema da tabela
@@ -340,9 +350,12 @@ export const LeadSchema = pgTable('leads', {
   sizeClassification: jsonb('size_classification').$type<ClassificationJson>(),
   googleMapsData: jsonb('google_maps_data').$type<GoogleMapsDataJson>(),
   cnpjWsData: jsonb('cnpj_ws_data').$type<CnpjDataJson>(),
-  decisionMakers: jsonb('decision_makers').$type<DecisionMakerJson[]>()
-    .default([]).notNull(),
-  enrichmentStatus: jsonb('enrichment_status').$type<EnrichmentStatusJson>()
+  decisionMakers: jsonb('decision_makers')
+    .$type<DecisionMakerJson[]>()
+    .default([])
+    .notNull(),
+  enrichmentStatus: jsonb('enrichment_status')
+    .$type<EnrichmentStatusJson>()
     .notNull(),
   score: jsonb('score').$type<LeadScoreJson>().notNull(),
 
@@ -427,9 +440,10 @@ export class LeadCategoryRepository
 
 ```typescript
 // src/modules/shared/infra/repositories/drizzle-base.repository.ts
-export abstract class DrizzleRepository<TSelect, TInsert>
-  implements IRepository<TSelect, TInsert>
-{
+export abstract class DrizzleRepository<
+  TSelect,
+  TInsert
+> implements IRepository<TSelect, TInsert> {
   constructor(
     protected readonly db: DrizzleDB,
     protected readonly schema: any
@@ -617,7 +631,9 @@ export class CreateCategoryUseCase {
   @Inject('ILeadCategoryRepository')
   private readonly repo: ILeadCategoryRepository
 
-  async execute(input: CreateCategoryInput): Promise<ModelOutput<CreateCategoryOutput>> {
+  async execute(
+    input: CreateCategoryInput
+  ): Promise<ModelOutput<CreateCategoryOutput>> {
     try {
       // 1. Validar entrada (formato)
       const validationErrors = CreateLeadCategoryDtoValidator.validate(input)
@@ -662,17 +678,16 @@ export class CreateCategoryUseCase {
       }
 
       // 5. Persistir via mapper
-      const model = CategoryLeadMapper.toModel(entity)
+      const model = LeadCategoryMapper.toModel(entity)
       await this.repo.save(model)
 
       // 6. Retornar sucesso
       return new ModelOutput({
-        data: CategoryLeadMapper.entityToOutput(entity),
+        data: LeadCategoryMapper.entityToOutput(entity),
         hasError: false,
         error: null,
         statusCode: HttpStatus.CREATED
       })
-
     } catch (error) {
       return new ModelOutput({
         data: null,
@@ -692,12 +707,12 @@ Estrutura padrão de resposta de use cases:
 ```typescript
 // src/modules/core/application/use-cases/common/model.output.ts
 export class ModelOutput<T = null> {
-  createdAt: Date      // timestamp da resposta
-  hasError: boolean    // indica se houve erro
-  ok: boolean          // inverso de hasError
-  error: any           // detalhes do erro { field: ['messages'] }
-  data: T              // dados de retorno
-  statusCode: number   // HTTP status code
+  createdAt: Date // timestamp da resposta
+  hasError: boolean // indica se houve erro
+  ok: boolean // inverso de hasError
+  error: any // detalhes do erro { field: ['messages'] }
+  data: T // dados de retorno
+  statusCode: number // HTTP status code
 
   constructor({ hasError, data, error, statusCode = 200 }) {
     this.createdAt = new Date()
@@ -726,7 +741,7 @@ Mappers convertem entre as camadas (Entity ↔ Model ↔ Output).
 
 ```typescript
 // src/modules/lead/application/mappers/category-lead.mapper.ts
-export class CategoryLeadMapper {
+export class LeadCategoryMapper {
   /**
    * Model (banco) → Entity (domínio)
    * Usado quando lê do banco e precisa aplicar lógica de domínio
@@ -828,10 +843,7 @@ export class LeadCategoryController {
   @ApiResponse({ status: 201, description: 'Category created' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   @ApiResponse({ status: 409, description: 'Name already exists' })
-  async create(
-    @Body() dto: CreateLeadCategoryDto,
-    @Res() res: Response
-  ) {
+  async create(@Body() dto: CreateLeadCategoryDto, @Res() res: Response) {
     const result = await this.createCategoryUseCase.execute({
       name: dto.name,
       description: dto.description,
@@ -854,10 +866,7 @@ export class LeadCategoryController {
 
   @Get(':id')
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Res() res: Response
-  ) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
     const result = await this.getCategoryByIdUseCase.execute(id)
     return res.status(result.statusCode).json(result)
   }
@@ -876,20 +885,20 @@ Providers organizam o registro de dependências por domínio.
 // src/modules/lead/infra/providers/lead-category.provider.ts
 const REPOSITORY_PROVIDERS = {
   ILeadCategoryRepository: {
-    provide: 'ILeadCategoryRepository',  // Token string para interface
-    useClass: LeadCategoryRepository     // Implementação concreta
+    provide: 'ILeadCategoryRepository', // Token string para interface
+    useClass: LeadCategoryRepository // Implementação concreta
   }
 } as const
 
 const USE_CASES_PROVIDERS = {
   CreateCategoryUseCase: {
-    provide: CreateCategoryUseCase,      // Token é a própria classe
+    provide: CreateCategoryUseCase, // Token é a própria classe
     useClass: CreateCategoryUseCase
   },
   ListCategoryUseCase: {
     provide: ListCategoryUseCase,
     useClass: ListCategoryUseCase
-  },
+  }
   // ...
 } as const
 
@@ -904,10 +913,7 @@ export const LEAD_CATEGORY_PROVIDERS = {
 ```typescript
 // src/modules/lead/lead.module.ts
 @Module({
-  controllers: [
-    LeadController,
-    LeadCategoryController
-  ],
+  controllers: [LeadController, LeadCategoryController],
   providers: [
     LeadService,
     // Spread dos providers
@@ -1037,7 +1043,7 @@ export class LeadCategoryFakeBuilder<TBuild = any> {
       return LeadCategoryEntity.reconstitute({
         id: new LeadCategoryId(this.callFactory(this._id, index)),
         name: NameVO.create(this.callFactory(this._name, index)),
-        priority: PriorityVO.create(this.callFactory(this._priority, index)),
+        priority: PriorityVO.create(this.callFactory(this._priority, index))
         // ...
       })
     })
@@ -1062,7 +1068,7 @@ const category = LeadCategoryFakeBuilder.aCategory()
 
 // Criar várias
 const categories = LeadCategoryFakeBuilder.theCategories(5)
-  .withPriority((i) => i + 1)  // 1, 2, 3, 4, 5
+  .withPriority(i => i + 1) // 1, 2, 3, 4, 5
   .build()
 
 // Lead pronto para outreach
@@ -1117,7 +1123,7 @@ describe('CreateCategoryUseCase', () => {
       save: jest.fn(),
       findById: jest.fn(),
       findAll: jest.fn(),
-      existsByName: jest.fn(),
+      existsByName: jest.fn()
       // ...
     }
 
@@ -1226,18 +1232,18 @@ describe('CreateCategoryUseCase', () => {
 
 ### Nomenclatura
 
-| Tipo | Padrão | Exemplo |
-|------|--------|---------|
-| Entity | `{Name}Entity` | `LeadEntity` |
-| Value Object | `{Name}VO` | `EmailVO`, `LeadScoreVO` |
-| Repository Interface | `I{Name}Repository` | `ILeadRepository` |
-| Repository Impl | `{Name}Repository` | `LeadRepository` |
-| Use Case | `{Action}{Entity}UseCase` | `CreateLeadUseCase` |
-| DTO | `{Action}{Entity}Dto` | `CreateLeadDto` |
-| Mapper | `{Entity}Mapper` | `LeadMapper` |
-| Provider | `{ENTITY}_PROVIDERS` | `LEAD_PROVIDERS` |
-| Schema | `{Entity}Schema` | `LeadSchema` |
-| Model Type | `{Entity}Model` | `LeadModel` |
+| Tipo                 | Padrão                    | Exemplo                  |
+| -------------------- | ------------------------- | ------------------------ |
+| Entity               | `{Name}Entity`            | `LeadEntity`             |
+| Value Object         | `{Name}VO`                | `EmailVO`, `LeadScoreVO` |
+| Repository Interface | `I{Name}Repository`       | `ILeadRepository`        |
+| Repository Impl      | `{Name}Repository`        | `LeadRepository`         |
+| Use Case             | `{Action}{Entity}UseCase` | `CreateLeadUseCase`      |
+| DTO                  | `{Action}{Entity}Dto`     | `CreateLeadDto`          |
+| Mapper               | `{Entity}Mapper`          | `LeadMapper`             |
+| Provider             | `{ENTITY}_PROVIDERS`      | `LEAD_PROVIDERS`         |
+| Schema               | `{Entity}Schema`          | `LeadSchema`             |
+| Model Type           | `{Entity}Model`           | `LeadModel`              |
 
 ### Organização de Imports
 
@@ -1255,14 +1261,14 @@ import { CreateLeadInput } from './dtos'
 
 ### Responsabilidades por Camada
 
-| Camada | Responsabilidade | Não deve fazer |
-|--------|------------------|----------------|
-| **Controller** | Receber request, chamar use case, formatar response | Lógica de negócio, acesso a banco |
-| **Use Case** | Orquestrar fluxo, validar, aplicar regras | Saber sobre HTTP, acessar banco diretamente |
-| **Entity** | Encapsular estado e comportamento de domínio | Saber sobre persistência, validar DTOs |
-| **Value Object** | Validar e encapsular valores imutáveis | Ter identidade, mutar estado |
-| **Repository** | Persistir e recuperar agregados | Lógica de negócio, validação |
-| **Mapper** | Converter entre camadas | Lógica de negócio, validação |
+| Camada           | Responsabilidade                                    | Não deve fazer                              |
+| ---------------- | --------------------------------------------------- | ------------------------------------------- |
+| **Controller**   | Receber request, chamar use case, formatar response | Lógica de negócio, acesso a banco           |
+| **Use Case**     | Orquestrar fluxo, validar, aplicar regras           | Saber sobre HTTP, acessar banco diretamente |
+| **Entity**       | Encapsular estado e comportamento de domínio        | Saber sobre persistência, validar DTOs      |
+| **Value Object** | Validar e encapsular valores imutáveis              | Ter identidade, mutar estado                |
+| **Repository**   | Persistir e recuperar agregados                     | Lógica de negócio, validação                |
+| **Mapper**       | Converter entre camadas                             | Lógica de negócio, validação                |
 
 ---
 
