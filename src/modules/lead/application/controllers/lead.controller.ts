@@ -30,6 +30,7 @@ import {
   DeleteLeadUseCase,
   SearchLeadUseCase
 } from '../use-cases/lead'
+import { SearchLocationUseCase } from '../use-cases/lead/search-location/search-location.use-case'
 
 @ApiTags('Leads')
 @Controller('leads')
@@ -51,6 +52,9 @@ export class LeadController {
 
   @Inject(SearchLeadUseCase)
   private readonly searchLeadUseCase: SearchLeadUseCase
+
+  @Inject(SearchLocationUseCase)
+  private readonly searchLocationUseCase: SearchLocationUseCase
 
   @Post()
   @ApiOperation({
@@ -135,10 +139,15 @@ export class LeadController {
   })
   async search(
     @Query('query') query: string,
+    @Query('country') country: string,
     @Query('location') location: string,
     @Res() res: Response
   ) {
-    const result = await this.searchLeadUseCase.execute(query, location)
+    const result = await this.searchLeadUseCase.execute(
+      query,
+      country,
+      location
+    )
     return res.status(result.statusCode).json(result)
   }
 
@@ -233,6 +242,30 @@ export class LeadController {
   })
   async remove(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
     const result = await this.deleteLeadUseCase.execute(id)
+    return res.status(result.statusCode).json(result)
+  }
+
+  @Get('search-location')
+  @ApiOperation({
+    summary: 'Search locations by query',
+    description: 'Searches for locations by query'
+  })
+  @ApiQuery({
+    name: 'query',
+    description: 'Search query (e.g., "restaurants", "dentists")',
+    type: 'string',
+    required: true
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Locations retrieved successfully'
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid search parameters'
+  })
+  async searchLocation(@Query('query') query: string, @Res() res: Response) {
+    const result = await this.searchLocationUseCase.execute(query)
     return res.status(result.statusCode).json(result)
   }
 }

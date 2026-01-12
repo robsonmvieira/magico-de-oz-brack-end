@@ -1,4 +1,4 @@
-import { LeadCategoryEntity } from '../entities/lead-category.entity'
+import { LeadCategoryEntity } from '../entities'
 
 export interface CategoryMatchResult {
   category: LeadCategoryEntity

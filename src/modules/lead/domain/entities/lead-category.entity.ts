@@ -1,4 +1,3 @@
-import { LeadCategoryId } from '../valueObject/lead-category.uuid'
 import { ValueObject } from '@modules/core/domain/valueObject'
 import {
   CategoryColorVO,
@@ -7,9 +6,10 @@ import {
   NameVO,
   PriorityVO,
   ScoreBonusVO,
-  SlugVO
+  SlugVO,
+  LeadCategoryId
 } from '../valueObject'
-import { LeadCategoryFakeBuilder } from '@modules/lead/tests/lead-category.fake-builder'
+import { LeadCategoryFakeBuilder } from '@modules/lead/tests'
 import {
   AggregateRoot,
   DefaultEntityProps

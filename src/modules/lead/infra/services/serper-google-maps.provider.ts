@@ -1,8 +1,8 @@
-import { IGoogleMapsProvider } from '@modules/lead/domain/services/googlemaps/googlemaps.provider'
 import {
+  IGoogleMapsProvider,
   GoogleMapsPlaceResponse,
   GoogleMapsPlaceReviewResponse
-} from '@modules/lead/domain/services/googlemaps/types'
+} from '@modules/lead/domain/services/googlemaps'
 import { ConfigService } from '@nestjs/config'
 import axios, { AxiosInstance } from 'axios'
 import { Injectable } from '@nestjs/common'
@@ -21,11 +21,14 @@ export class SerperGoogleMapsProvider implements IGoogleMapsProvider {
   }
   async search(
     query: string,
+    country: string,
     location: string
   ): Promise<GoogleMapsPlaceResponse> {
     const data = JSON.stringify({
       q: query,
-      hl: location
+      gl: country,
+      location,
+      hl: 'pt-br'
     })
     const url = '/maps'
     return await this.axiosInstance
@@ -38,11 +41,12 @@ export class SerperGoogleMapsProvider implements IGoogleMapsProvider {
 
   async getReviews(
     placeId: string,
-    language: string
+    country: string
   ): Promise<GoogleMapsPlaceReviewResponse> {
     const data = JSON.stringify({
       cid: placeId,
-      hl: language
+      hl: 'pt-br',
+      gl: country
     })
     const url = '/reviews'
     return await this.axiosInstance

@@ -3,17 +3,27 @@ import { CreateCategoryUseCase } from '@modules/lead/application/use-cases/lead-
 import { GetCategoryByIdUseCase } from '@modules/lead/application/use-cases/lead-category/get-by-id/get-category-by-id.use-case'
 import { UpdateCategoryUseCase } from '@modules/lead/application/use-cases/lead-category/update/update-category.use-case'
 import { DeleteCategoryUseCase } from '@modules/lead/application/use-cases/lead-category/delete/delete-category.use-case'
-import { LeadCategoryRepository } from '../repositories'
+import { LeadCategoryRepository, LocationRepository } from '../repositories'
 import { RedisCacheRepository } from '@modules/shared/infra/cache'
+import { KeywordCategoryClassifier } from '../services'
+import { SearchLocationUseCase } from '@modules/lead/application/use-cases/lead/search-location/search-location.use-case'
 
 const REPOSITORY_PROVIDERS = {
   ILeadCategoryRepository: {
     provide: 'ILeadCategoryRepository',
     useClass: LeadCategoryRepository
   },
+  ICategoryClassifierDomainService: {
+    provide: 'ICategoryClassifierDomainService',
+    useClass: KeywordCategoryClassifier
+  },
   ICacheRepository: {
     provide: 'ICacheRepository',
     useClass: RedisCacheRepository
+  },
+  ILocationRepository: {
+    provide: 'ILocationRepository',
+    useClass: LocationRepository
   }
 } as const
 
@@ -37,6 +47,10 @@ const USE_CASES_PROVIDERS = {
   DeleteCategoryUseCase: {
     provide: DeleteCategoryUseCase,
     useClass: DeleteCategoryUseCase
+  },
+  SearchLocationUseCase: {
+    provide: SearchLocationUseCase,
+    useClass: SearchLocationUseCase
   }
 } as const
 

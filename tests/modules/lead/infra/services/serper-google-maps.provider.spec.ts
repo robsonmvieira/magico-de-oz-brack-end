@@ -77,18 +77,23 @@ describe('SerperGoogleMapsProvider', () => {
     it('should call API with correct parameters', async () => {
       mockAxiosInstance.post.mockResolvedValue({ data: mockSearchResponse })
 
-      await provider.search('restaurants', 'pt-BR')
+      await provider.search('restaurants', 'BR', 'São Paulo')
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith(
         '/maps',
-        JSON.stringify({ q: 'restaurants', hl: 'pt-BR' })
+        JSON.stringify({
+          q: 'restaurants',
+          gl: 'BR',
+          location: 'São Paulo',
+          hl: 'pt-br'
+        })
       )
     })
 
     it('should return search results on success', async () => {
       mockAxiosInstance.post.mockResolvedValue({ data: mockSearchResponse })
 
-      const result = await provider.search('restaurants', 'pt-BR')
+      const result = await provider.search('restaurants', 'BR', 'São Paulo')
 
       expect(result).toEqual(mockSearchResponse)
       expect(result.places).toHaveLength(1)
@@ -98,17 +103,17 @@ describe('SerperGoogleMapsProvider', () => {
     it('should throw error when API call fails', async () => {
       mockAxiosInstance.post.mockRejectedValue(new Error('Network error'))
 
-      await expect(provider.search('restaurants', 'pt-BR')).rejects.toThrow(
-        'Error searching Google Maps: Network error'
-      )
+      await expect(
+        provider.search('restaurants', 'BR', 'São Paulo')
+      ).rejects.toThrow('Error searching Google Maps: Network error')
     })
 
     it('should throw error with API error message', async () => {
       mockAxiosInstance.post.mockRejectedValue(new Error('Invalid API key'))
 
-      await expect(provider.search('restaurants', 'pt-BR')).rejects.toThrow(
-        'Error searching Google Maps: Invalid API key'
-      )
+      await expect(
+        provider.search('restaurants', 'BR', 'São Paulo')
+      ).rejects.toThrow('Error searching Google Maps: Invalid API key')
     })
   })
 
@@ -156,18 +161,18 @@ describe('SerperGoogleMapsProvider', () => {
     it('should call API with correct parameters', async () => {
       mockAxiosInstance.post.mockResolvedValue({ data: mockReviewsResponse })
 
-      await provider.getReviews('12345', 'pt-BR')
+      await provider.getReviews('12345', 'BR')
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith(
         '/reviews',
-        JSON.stringify({ cid: '12345', hl: 'pt-BR' })
+        JSON.stringify({ cid: '12345', hl: 'pt-br', gl: 'BR' })
       )
     })
 
     it('should return reviews on success', async () => {
       mockAxiosInstance.post.mockResolvedValue({ data: mockReviewsResponse })
 
-      const result = await provider.getReviews('12345', 'pt-BR')
+      const result = await provider.getReviews('12345', 'BR')
 
       expect(result).toEqual(mockReviewsResponse)
       expect(result.reviews).toHaveLength(1)
@@ -177,7 +182,7 @@ describe('SerperGoogleMapsProvider', () => {
     it('should throw error when API call fails', async () => {
       mockAxiosInstance.post.mockRejectedValue(new Error('Network error'))
 
-      await expect(provider.getReviews('12345', 'pt-BR')).rejects.toThrow(
+      await expect(provider.getReviews('12345', 'BR')).rejects.toThrow(
         'Error getting Google Maps reviews: Network error'
       )
     })
@@ -185,7 +190,7 @@ describe('SerperGoogleMapsProvider', () => {
     it('should throw error with API error message', async () => {
       mockAxiosInstance.post.mockRejectedValue(new Error('Rate limit exceeded'))
 
-      await expect(provider.getReviews('12345', 'pt-BR')).rejects.toThrow(
+      await expect(provider.getReviews('12345', 'BR')).rejects.toThrow(
         'Error getting Google Maps reviews: Rate limit exceeded'
       )
     })
