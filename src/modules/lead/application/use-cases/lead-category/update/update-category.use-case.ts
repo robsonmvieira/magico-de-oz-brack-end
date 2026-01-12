@@ -1,6 +1,6 @@
 import { Inject, Injectable, HttpStatus } from '@nestjs/common'
 import { ILeadCategoryRepository } from '@modules/lead/domain/repositories'
-import { CategoryLeadMapper } from '@modules/lead/application/mappers/category-lead.mapper'
+import { LeadCategoryMapper } from '@modules/lead/application/mappers/category-lead.mapper'
 import { ModelOutput } from '@modules/core/application/use-cases/common'
 import { IdParamDtoValidator } from '@modules/lead/application/dtos'
 import { UpdateCategoryInput, UpdateCategoryOutput } from './dtos'
@@ -52,7 +52,7 @@ export class UpdateCategoryUseCase {
       }
 
       // Convert to entity for domain logic
-      const entity = CategoryLeadMapper.toEntity(existingCategory)
+      const entity = LeadCategoryMapper.toEntity(existingCategory)
 
       // Apply updates using domain methods
       if (input.name !== undefined) {
@@ -96,11 +96,11 @@ export class UpdateCategoryUseCase {
       }
 
       // Update in repository
-      const model = CategoryLeadMapper.toModel(entity)
+      const model = LeadCategoryMapper.toModel(entity)
       await this.repo.update(id, model)
 
       return new ModelOutput<UpdateCategoryOutput>({
-        data: CategoryLeadMapper.entityToOutput(entity),
+        data: LeadCategoryMapper.entityToOutput(entity),
         hasError: false,
         error: null,
         statusCode: HttpStatus.OK

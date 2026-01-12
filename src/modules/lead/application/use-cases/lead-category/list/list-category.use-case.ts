@@ -1,6 +1,6 @@
 import { ILeadCategoryRepository } from '@modules/lead/domain/repositories'
 import { LeadCategoryOutput } from '@modules/lead/application/use-cases/lead-category/list/dtos'
-import { CategoryLeadMapper } from '@modules/lead/application/mappers/category-lead.mapper'
+import { LeadCategoryMapper } from '@modules/lead/application/mappers/category-lead.mapper'
 import { Inject, Injectable, HttpStatus } from '@nestjs/common'
 import { ModelCollectionOutput } from '@modules/core/application/use-cases/common'
 
@@ -13,7 +13,7 @@ export class ListCategoryUseCase {
     try {
       const items = await this.repo.findAll()
       return new ModelCollectionOutput<LeadCategoryOutput>({
-        data: items.map(CategoryLeadMapper.toOutput),
+        data: items.map(LeadCategoryMapper.toOutput),
         hasError: false,
         error: null,
         statusCode: HttpStatus.OK

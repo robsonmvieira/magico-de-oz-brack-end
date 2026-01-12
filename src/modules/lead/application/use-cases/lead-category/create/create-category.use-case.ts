@@ -1,7 +1,7 @@
 import { Inject, Injectable, HttpStatus } from '@nestjs/common'
 import { ILeadCategoryRepository } from '@modules/lead/domain/repositories'
 import { LeadCategoryEntity } from '@modules/lead/domain/entities/lead-category.entity'
-import { CategoryLeadMapper } from '@modules/lead/application/mappers/category-lead.mapper'
+import { LeadCategoryMapper } from '@modules/lead/application/mappers/category-lead.mapper'
 import { ModelOutput } from '@modules/core/application/use-cases/common'
 import { CreateLeadCategoryDtoValidator } from '@modules/lead/application/dtos'
 import { CreateCategoryInput, CreateCategoryOutput } from './dtos'
@@ -58,11 +58,11 @@ export class CreateCategoryUseCase {
       }
 
       // Save to repository
-      const model = CategoryLeadMapper.toModel(entity)
+      const model = LeadCategoryMapper.toModel(entity)
       await this.repo.save(model)
 
       return new ModelOutput<CreateCategoryOutput>({
-        data: CategoryLeadMapper.entityToOutput(entity),
+        data: LeadCategoryMapper.entityToOutput(entity),
         hasError: false,
         error: null,
         statusCode: HttpStatus.CREATED

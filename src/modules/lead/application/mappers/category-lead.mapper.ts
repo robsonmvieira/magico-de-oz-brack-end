@@ -6,7 +6,7 @@ import {
 import { LeadCategoryOutput } from '@modules/lead/application/use-cases/lead-category/list/dtos'
 import { LeadCategoryId } from '@modules/lead/domain/valueObject/lead-category.uuid'
 
-export class CategoryLeadMapper {
+export class LeadCategoryMapper {
   /**
    * Converte Model (persistência) para Entity (domínio)
    */
