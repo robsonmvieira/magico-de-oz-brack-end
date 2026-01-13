@@ -4,6 +4,7 @@ import { GetLeadByIdUseCase } from '@modules/lead/application/use-cases/lead/get
 import { UpdateLeadUseCase } from '@modules/lead/application/use-cases/lead/update/update-lead.use-case'
 import { DeleteLeadUseCase } from '@modules/lead/application/use-cases/lead/delete/delete-lead.use-case'
 import { SearchLeadUseCase } from '@modules/lead/application/use-cases/lead/search/search-lead.use-case'
+import { AutocompleteLeadUseCase } from '@modules/lead/application/use-cases/lead/autocomplete/autocomplete-lead.use-case'
 import { LeadRepository } from '../repositories'
 import { RedisCacheRepository } from '@modules/shared/infra/cache'
 import { SerperGoogleMapsProvider } from '../services'
@@ -47,6 +48,10 @@ const USE_CASES_PROVIDERS = {
   SearchLeadUseCase: {
     provide: SearchLeadUseCase,
     useClass: SearchLeadUseCase
+  },
+  AutocompleteLeadUseCase: {
+    provide: AutocompleteLeadUseCase,
+    useClass: AutocompleteLeadUseCase
   }
 } as const
 

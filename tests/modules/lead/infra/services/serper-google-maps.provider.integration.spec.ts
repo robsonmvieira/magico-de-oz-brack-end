@@ -80,4 +80,50 @@ describe('SerperGoogleMapsProvider (Integration)', () => {
       }
     }, 60000)
   })
+
+  describe('autoComplete', () => {
+    it('should return suggestions for a valid query', async () => {
+      const result = await provider.autoComplete(
+        'restaurantes',
+        'BR',
+        'São Paulo'
+      )
+
+      expect(result).toBeDefined()
+      expect(result.searchParameters).toBeDefined()
+      expect(result.searchParameters.q).toBe('restaurantes')
+      expect(result.suggestions).toBeDefined()
+      expect(Array.isArray(result.suggestions)).toBe(true)
+    }, 30000)
+
+    it('should return suggestions with value property', async () => {
+      const result = await provider.autoComplete('padarias', 'BR', 'São Paulo')
+
+      expect(result.suggestions.length).toBeGreaterThan(0)
+
+      const suggestion = result.suggestions[0]
+      expect(suggestion.value).toBeDefined()
+      expect(typeof suggestion.value).toBe('string')
+    }, 30000)
+
+    it('should handle partial query terms', async () => {
+      const result = await provider.autoComplete('dentis', 'BR', 'São Paulo')
+
+      expect(result).toBeDefined()
+      expect(result.suggestions).toBeDefined()
+      expect(Array.isArray(result.suggestions)).toBe(true)
+    }, 30000)
+
+    it('should work with different locations', async () => {
+      const result = await provider.autoComplete(
+        'restaurantes',
+        'BR',
+        'Rio de Janeiro'
+      )
+
+      expect(result).toBeDefined()
+      expect(result.suggestions).toBeDefined()
+      expect(Array.isArray(result.suggestions)).toBe(true)
+    }, 30000)
+  })
 })

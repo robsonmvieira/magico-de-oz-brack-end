@@ -28,7 +28,8 @@ import {
   GetLeadByIdUseCase,
   UpdateLeadUseCase,
   DeleteLeadUseCase,
-  SearchLeadUseCase
+  SearchLeadUseCase,
+  AutocompleteLeadUseCase
 } from '../use-cases/lead'
 import { SearchLocationUseCase } from '../use-cases/lead/search-location/search-location.use-case'
 
@@ -55,6 +56,9 @@ export class LeadController {
 
   @Inject(SearchLocationUseCase)
   private readonly searchLocationUseCase: SearchLocationUseCase
+
+  @Inject(AutocompleteLeadUseCase)
+  private readonly autocompleteLeadUseCase: AutocompleteLeadUseCase
 
   @Post()
   @ApiOperation({
@@ -144,6 +148,108 @@ export class LeadController {
     @Res() res: Response
   ) {
     const result = await this.searchLeadUseCase.execute(
+      query,
+      country,
+      location
+    )
+    return res.status(result.statusCode).json(result)
+  }
+
+  @Get('search-location')
+  @ApiOperation({
+    summary: 'Search locations by query',
+    description:
+      'Searches for geographic locations (cities, neighborhoods, regions) by name. Returns a list of matching locations with their Google IDs for use in lead searches.'
+  })
+  @ApiQuery({
+    name: 'query',
+    description:
+      'Location search term (e.g., "São Paulo", "Pinheiros", "Rio de Janeiro")',
+    type: 'string',
+    required: true,
+    example: 'São Paulo'
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Locations retrieved successfully'
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid search parameters'
+  })
+  async searchLocation(@Query('query') query: string, @Res() res: Response) {
+    const result = await this.searchLocationUseCase.execute(query)
+    return res.status(result.statusCode).json(result)
+  }
+
+  @Get('autocomplete')
+  @ApiOperation({
+    summary: 'Autocomplete search suggestions',
+    description:
+      'Returns autocomplete suggestions for lead searches based on query, country and location. Useful for implementing search-as-you-type functionality in the frontend.'
+  })
+  @ApiQuery({
+    name: 'query',
+    description:
+      'Partial search term to get suggestions for (e.g., "restaur", "dentis")',
+    type: 'string',
+    required: true,
+    example: 'restaurantes'
+  })
+  @ApiQuery({
+    name: 'country',
+    description: 'Country code for search context (e.g., "br" for Brazil)',
+    type: 'string',
+    required: true,
+    example: 'br'
+  })
+  @ApiQuery({
+    name: 'location',
+    description:
+      'Location context for suggestions (e.g., "São Paulo, SP", "Rio de Janeiro, RJ")',
+    type: 'string',
+    required: true,
+    example: 'São Paulo, SP'
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Autocomplete suggestions retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              value: {
+                type: 'string',
+                example: 'restaurantes italianos'
+              }
+            }
+          }
+        },
+        hasError: { type: 'boolean', example: false },
+        error: { type: 'object', nullable: true },
+        statusCode: { type: 'number', example: 200 }
+      }
+    }
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid search parameters'
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Error while fetching autocomplete suggestions'
+  })
+  async autocomplete(
+    @Query('query') query: string,
+    @Query('country') country: string,
+    @Query('location') location: string,
+    @Res() res: Response
+  ) {
+    const result = await this.autocompleteLeadUseCase.execute(
       query,
       country,
       location
@@ -242,30 +348,6 @@ export class LeadController {
   })
   async remove(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
     const result = await this.deleteLeadUseCase.execute(id)
-    return res.status(result.statusCode).json(result)
-  }
-
-  @Get('search-location')
-  @ApiOperation({
-    summary: 'Search locations by query',
-    description: 'Searches for locations by query'
-  })
-  @ApiQuery({
-    name: 'query',
-    description: 'Search query (e.g., "restaurants", "dentists")',
-    type: 'string',
-    required: true
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Locations retrieved successfully'
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid search parameters'
-  })
-  async searchLocation(@Query('query') query: string, @Res() res: Response) {
-    const result = await this.searchLocationUseCase.execute(query)
     return res.status(result.statusCode).json(result)
   }
 }
