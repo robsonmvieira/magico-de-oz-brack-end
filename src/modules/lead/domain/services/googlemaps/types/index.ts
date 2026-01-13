@@ -1,2 +1,3 @@
 export * from './google-place'
 export * from './google-place-review'
+export * from './autocomplete'

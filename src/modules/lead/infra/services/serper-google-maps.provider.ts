@@ -1,7 +1,8 @@
 import {
   IGoogleMapsProvider,
   GoogleMapsPlaceResponse,
-  GoogleMapsPlaceReviewResponse
+  GoogleMapsPlaceReviewResponse,
+  GoogleMapsAutoCompleteResponse
 } from '@modules/lead/domain/services/googlemaps'
 import { ConfigService } from '@nestjs/config'
 import axios, { AxiosInstance } from 'axios'
@@ -54,6 +55,27 @@ export class SerperGoogleMapsProvider implements IGoogleMapsProvider {
       .then(response => response.data)
       .catch(error => {
         throw new Error(`Error getting Google Maps reviews: ${error.message}`)
+      })
+  }
+  async autoComplete(
+    query: string,
+    country: string,
+    location: string
+  ): Promise<GoogleMapsAutoCompleteResponse> {
+    const data = JSON.stringify({
+      q: query,
+      gl: country,
+      location,
+      hl: 'pt-br'
+    })
+
+    return await this.axiosInstance
+      .post('/autocomplete', data)
+      .then(response => response.data)
+      .catch(error => {
+        throw new Error(
+          `Error getting Google Maps autocomplete: ${error.message}`
+        )
       })
   }
 }

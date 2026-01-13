@@ -10,7 +10,8 @@ import {
 
 const createMockGoogleMapsProvider = (): jest.Mocked<IGoogleMapsProvider> => ({
   search: jest.fn(),
-  getReviews: jest.fn()
+  getReviews: jest.fn(),
+  autoComplete: jest.fn()
 })
 
 const createMockCategoryClassifier =
