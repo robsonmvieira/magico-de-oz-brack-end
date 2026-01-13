@@ -1,4 +1,8 @@
-import { GoogleMapsPlaceResponse, GoogleMapsPlaceReviewResponse } from './types'
+import {
+  GoogleMapsAutoCompleteResponse,
+  GoogleMapsPlaceResponse,
+  GoogleMapsPlaceReviewResponse
+} from './types'
 
 export interface IGoogleMapsProvider {
   search(
@@ -10,4 +14,10 @@ export interface IGoogleMapsProvider {
     placeId: string,
     country: string
   ): Promise<GoogleMapsPlaceReviewResponse>
+
+  autoComplete(
+    query: string,
+    country: string,
+    location: string
+  ): Promise<GoogleMapsAutoCompleteResponse>
 }

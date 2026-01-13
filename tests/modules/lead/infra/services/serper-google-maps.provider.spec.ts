@@ -195,4 +195,121 @@ describe('SerperGoogleMapsProvider', () => {
       )
     })
   })
+
+  describe('autoComplete', () => {
+    const mockAutoCompleteResponse = {
+      searchParameters: {
+        q: 'restaurantes',
+        gl: 'BR',
+        hl: 'pt-br',
+        uule: 'w+CAIQICINQW52aWxsZSxUZW5uZXNzZWUsVW5pdGVkIFN0YXRlcw',
+        type: 'autocomplete',
+        location: 'São Paulo',
+        engine: 'google_maps_autocomplete'
+      },
+      suggestions: [
+        { value: 'restaurantes italianos' },
+        { value: 'restaurantes japoneses' },
+        { value: 'restaurantes mexicanos' },
+        { value: 'restaurantes brasileiros' }
+      ],
+      credits: 1
+    }
+
+    it('should call API with correct parameters', async () => {
+      mockAxiosInstance.post.mockResolvedValue({
+        data: mockAutoCompleteResponse
+      })
+
+      await provider.autoComplete('restaurantes', 'BR', 'São Paulo')
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/autocomplete',
+        JSON.stringify({
+          q: 'restaurantes',
+          gl: 'BR',
+          location: 'São Paulo',
+          hl: 'pt-br'
+        })
+      )
+    })
+
+    it('should return autocomplete suggestions on success', async () => {
+      mockAxiosInstance.post.mockResolvedValue({
+        data: mockAutoCompleteResponse
+      })
+
+      const result = await provider.autoComplete(
+        'restaurantes',
+        'BR',
+        'São Paulo'
+      )
+
+      expect(result).toEqual(mockAutoCompleteResponse)
+      expect(result.suggestions).toHaveLength(4)
+      expect(result.suggestions[0].value).toBe('restaurantes italianos')
+    })
+
+    it('should return empty suggestions array when no suggestions found', async () => {
+      const emptyResponse = {
+        ...mockAutoCompleteResponse,
+        suggestions: []
+      }
+      mockAxiosInstance.post.mockResolvedValue({ data: emptyResponse })
+
+      const result = await provider.autoComplete(
+        'xyznonexistent',
+        'BR',
+        'São Paulo'
+      )
+
+      expect(result.suggestions).toHaveLength(0)
+    })
+
+    it('should throw error when API call fails', async () => {
+      mockAxiosInstance.post.mockRejectedValue(new Error('Network error'))
+
+      await expect(
+        provider.autoComplete('restaurantes', 'BR', 'São Paulo')
+      ).rejects.toThrow('Error getting Google Maps autocomplete: Network error')
+    })
+
+    it('should throw error with API error message', async () => {
+      mockAxiosInstance.post.mockRejectedValue(new Error('Invalid API key'))
+
+      await expect(
+        provider.autoComplete('restaurantes', 'BR', 'São Paulo')
+      ).rejects.toThrow(
+        'Error getting Google Maps autocomplete: Invalid API key'
+      )
+    })
+
+    it('should throw error when rate limit exceeded', async () => {
+      mockAxiosInstance.post.mockRejectedValue(new Error('Rate limit exceeded'))
+
+      await expect(
+        provider.autoComplete('restaurantes', 'BR', 'São Paulo')
+      ).rejects.toThrow(
+        'Error getting Google Maps autocomplete: Rate limit exceeded'
+      )
+    })
+
+    it('should work with different country and location parameters', async () => {
+      mockAxiosInstance.post.mockResolvedValue({
+        data: mockAutoCompleteResponse
+      })
+
+      await provider.autoComplete('dentists', 'US', 'New York')
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/autocomplete',
+        JSON.stringify({
+          q: 'dentists',
+          gl: 'US',
+          location: 'New York',
+          hl: 'pt-br'
+        })
+      )
+    })
+  })
 })
