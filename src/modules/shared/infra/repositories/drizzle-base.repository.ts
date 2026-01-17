@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { PgTable } from 'drizzle-orm/pg-core'
 import { IRepository } from '@modules/core/domain/repositories'
-import { DrizzleDB } from '@modules/database'
+import { DrizzleDB, DrizzleClient } from '@modules/database'
 
 type TableWithId = PgTable & { id: any; isDeleted: any }
 
@@ -15,26 +15,36 @@ export abstract class DrizzleRepository<
     protected readonly table: TTable
   ) {}
 
-  async save(entity: TInsert): Promise<void> {
-    await this.db.insert(this.table).values(entity as any)
+  protected getDb(tx?: DrizzleClient): DrizzleClient {
+    return tx ?? this.db
   }
 
-  async update(modelId: string, entity: Partial<TInsert>): Promise<void> {
-    await this.db
+  async save(entity: TInsert, tx?: DrizzleClient): Promise<void> {
+    await this.getDb(tx)
+      .insert(this.table)
+      .values(entity as any)
+  }
+
+  async update(
+    modelId: string,
+    entity: Partial<TInsert>,
+    tx?: DrizzleClient
+  ): Promise<void> {
+    await this.getDb(tx)
       .update(this.table)
       .set(entity as any)
       .where(eq(this.table.id, modelId))
   }
 
-  async delete(entity: TSelect): Promise<void> {
-    await this.db
+  async delete(entity: TSelect, tx?: DrizzleClient): Promise<void> {
+    await this.getDb(tx)
       .update(this.table)
       .set({ isDeleted: true } as any)
       .where(eq(this.table.id, (entity as any).id))
   }
 
-  async findById(id: string): Promise<TSelect | null> {
-    const result = await this.db
+  async findById(id: string, tx?: DrizzleClient): Promise<TSelect | null> {
+    const result = await this.getDb(tx)
       .select()
       .from(this.table as any)
       .where(eq(this.table.id, id))
@@ -43,8 +53,8 @@ export abstract class DrizzleRepository<
     return (result[0] as TSelect) || null
   }
 
-  async findAll(): Promise<TSelect[]> {
-    const result = await this.db
+  async findAll(tx?: DrizzleClient): Promise<TSelect[]> {
+    const result = await this.getDb(tx)
       .select()
       .from(this.table as any)
       .where(eq(this.table.isDeleted, false))
