@@ -1,11 +1,19 @@
 import { UnitOfWorkDrizzleRepository } from '@modules/shared/infra/repositories'
-import { DrizzleDB } from '@modules/database'
+import { DrizzleDB, DrizzleTransaction } from '@modules/database'
 import { AggregateRoot } from '@modules/core/domain/entities'
+import { ValueObject, UuidVO } from '@modules/core/domain/valueObject'
 
 class TestAggregate extends AggregateRoot {
-  constructor(id: string) {
-    super()
-    this.id = id
+  constructor(id?: UuidVO) {
+    super(id)
+  }
+
+  get entity_id(): ValueObject {
+    return this.id
+  }
+
+  toJSON() {
+    return { id: this.id.id }
   }
 }
 
@@ -27,7 +35,7 @@ describe('UnitOfWorkDrizzleRepository', () => {
       const callback = jest.fn().mockResolvedValue(expectedResult)
 
       mockDb.transaction.mockImplementation(async fn => {
-        const mockTx = {} as DrizzleDB
+        const mockTx = {} as unknown as DrizzleTransaction
         return fn(mockTx)
       })
 
@@ -39,7 +47,7 @@ describe('UnitOfWorkDrizzleRepository', () => {
     })
 
     it('should pass transaction to callback', async () => {
-      const mockTx = { isTx: true } as unknown as DrizzleDB
+      const mockTx = { isTx: true } as unknown as DrizzleTransaction
 
       mockDb.transaction.mockImplementation(async fn => {
         return fn(mockTx)
@@ -54,7 +62,7 @@ describe('UnitOfWorkDrizzleRepository', () => {
       const error = new Error('Database error')
 
       mockDb.transaction.mockImplementation(async fn => {
-        const mockTx = {} as DrizzleDB
+        const mockTx = {} as unknown as DrizzleTransaction
         return fn(mockTx)
       })
 
@@ -66,10 +74,10 @@ describe('UnitOfWorkDrizzleRepository', () => {
     })
 
     it('should clear aggregates after successful transaction', async () => {
-      const aggregate = new TestAggregate('123')
+      const aggregate = new TestAggregate()
 
       mockDb.transaction.mockImplementation(async fn => {
-        const mockTx = {} as DrizzleDB
+        const mockTx = {} as unknown as DrizzleTransaction
         return fn(mockTx)
       })
 
@@ -84,11 +92,11 @@ describe('UnitOfWorkDrizzleRepository', () => {
     })
 
     it('should call clearEvents on aggregates after commit', async () => {
-      const aggregate = new TestAggregate('123')
+      const aggregate = new TestAggregate()
       const clearEventsSpy = jest.spyOn(aggregate, 'clearEvents')
 
       mockDb.transaction.mockImplementation(async fn => {
-        const mockTx = {} as DrizzleDB
+        const mockTx = {} as unknown as DrizzleTransaction
         return fn(mockTx)
       })
 
@@ -104,7 +112,7 @@ describe('UnitOfWorkDrizzleRepository', () => {
 
   describe('addAggregate', () => {
     it('should add aggregate to the set', () => {
-      const aggregate = new TestAggregate('123')
+      const aggregate = new TestAggregate()
 
       uow.addAggregate(aggregate)
 
@@ -112,7 +120,7 @@ describe('UnitOfWorkDrizzleRepository', () => {
     })
 
     it('should not add duplicate aggregates', () => {
-      const aggregate = new TestAggregate('123')
+      const aggregate = new TestAggregate()
 
       uow.addAggregate(aggregate)
       uow.addAggregate(aggregate)
@@ -121,8 +129,8 @@ describe('UnitOfWorkDrizzleRepository', () => {
     })
 
     it('should add multiple different aggregates', () => {
-      const aggregate1 = new TestAggregate('123')
-      const aggregate2 = new TestAggregate('456')
+      const aggregate1 = new TestAggregate()
+      const aggregate2 = new TestAggregate()
 
       uow.addAggregate(aggregate1)
       uow.addAggregate(aggregate2)
@@ -139,8 +147,8 @@ describe('UnitOfWorkDrizzleRepository', () => {
     })
 
     it('should return array of added aggregates', () => {
-      const aggregate1 = new TestAggregate('123')
-      const aggregate2 = new TestAggregate('456')
+      const aggregate1 = new TestAggregate()
+      const aggregate2 = new TestAggregate()
 
       uow.addAggregate(aggregate1)
       uow.addAggregate(aggregate2)
