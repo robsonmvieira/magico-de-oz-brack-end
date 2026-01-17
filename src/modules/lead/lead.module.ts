@@ -5,8 +5,10 @@ import {
   LeadController
 } from './application/controllers'
 import { LEAD_CATEGORY_PROVIDERS, LEAD_PROVIDERS } from './infra/providers'
+import { SharedModule } from '@modules/shared/shared.module'
 
 @Module({
+  imports: [SharedModule],
   controllers: [LeadController, LeadCategoryController],
   providers: [
     LeadService,

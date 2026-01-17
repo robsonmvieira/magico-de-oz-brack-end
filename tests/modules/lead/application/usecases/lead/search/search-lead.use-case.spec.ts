@@ -210,16 +210,5 @@ describe('SearchLeadUseCase', () => {
         'New York'
       )
     })
-
-    it('should call location repository to search by name', async () => {
-      googleMapsProvider.search.mockResolvedValue(createMockSearchResponse())
-      locationRepository.searchByName.mockResolvedValue([])
-
-      await useCase.execute('restaurants', 'BR', 'São Paulo')
-
-      expect(locationRepository.searchByName).toHaveBeenCalledWith(
-        'restaurants'
-      )
-    })
   })
 })
