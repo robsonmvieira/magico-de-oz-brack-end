@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { PgTable } from 'drizzle-orm/pg-core'
 import { IRepository } from '@modules/core/domain/repositories'
-import { DrizzleDB } from '@modules/database'
+import { DrizzleDB, DrizzleClient } from '@modules/database'
 
 type TableWithId = PgTable & { id: any; isDeleted: any }
 
@@ -15,11 +15,11 @@ export abstract class DrizzleRepository<
     protected readonly table: TTable
   ) {}
 
-  protected getDb(tx?: DrizzleDB): DrizzleDB {
+  protected getDb(tx?: DrizzleClient): DrizzleClient {
     return tx ?? this.db
   }
 
-  async save(entity: TInsert, tx?: DrizzleDB): Promise<void> {
+  async save(entity: TInsert, tx?: DrizzleClient): Promise<void> {
     await this.getDb(tx)
       .insert(this.table)
       .values(entity as any)
@@ -28,7 +28,7 @@ export abstract class DrizzleRepository<
   async update(
     modelId: string,
     entity: Partial<TInsert>,
-    tx?: DrizzleDB
+    tx?: DrizzleClient
   ): Promise<void> {
     await this.getDb(tx)
       .update(this.table)
@@ -36,14 +36,14 @@ export abstract class DrizzleRepository<
       .where(eq(this.table.id, modelId))
   }
 
-  async delete(entity: TSelect, tx?: DrizzleDB): Promise<void> {
+  async delete(entity: TSelect, tx?: DrizzleClient): Promise<void> {
     await this.getDb(tx)
       .update(this.table)
       .set({ isDeleted: true } as any)
       .where(eq(this.table.id, (entity as any).id))
   }
 
-  async findById(id: string, tx?: DrizzleDB): Promise<TSelect | null> {
+  async findById(id: string, tx?: DrizzleClient): Promise<TSelect | null> {
     const result = await this.getDb(tx)
       .select()
       .from(this.table as any)
@@ -53,7 +53,7 @@ export abstract class DrizzleRepository<
     return (result[0] as TSelect) || null
   }
 
-  async findAll(tx?: DrizzleDB): Promise<TSelect[]> {
+  async findAll(tx?: DrizzleClient): Promise<TSelect[]> {
     const result = await this.getDb(tx)
       .select()
       .from(this.table as any)
