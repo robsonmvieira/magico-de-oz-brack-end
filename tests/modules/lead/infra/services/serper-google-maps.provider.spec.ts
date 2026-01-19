@@ -80,7 +80,7 @@ describe('SerperGoogleMapsProvider', () => {
       await provider.search('restaurants', 'BR', 'São Paulo')
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/maps',
+        '/places',
         JSON.stringify({
           q: 'restaurants',
           gl: 'BR',

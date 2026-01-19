@@ -1,6 +1,6 @@
 import {
   IGoogleMapsProvider,
-  GoogleMapsPlaceResponse,
+  GooglePlaceResponse,
   GoogleMapsPlaceReviewResponse,
   GoogleMapsAutoCompleteResponse
 } from '@modules/lead/domain/services/googlemaps'
@@ -24,14 +24,14 @@ export class SerperGoogleMapsProvider implements IGoogleMapsProvider {
     query: string,
     country: string,
     location: string
-  ): Promise<GoogleMapsPlaceResponse> {
+  ): Promise<GooglePlaceResponse> {
     const data = JSON.stringify({
       q: query,
       gl: country,
       location,
       hl: 'pt-br'
     })
-    const url = '/maps'
+    const url = '/places'
     return await this.axiosInstance
       .post(url, data)
       .then(response => response.data)

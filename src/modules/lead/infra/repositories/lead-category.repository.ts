@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { eq, ilike as ILikeOperator } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { DrizzleRepository } from '@modules/shared/infra/repositories'
 import { DRIZZLE, DrizzleDB } from '@modules/database'
 import { ILeadCategoryRepository } from '@modules/lead/domain/repositories'
@@ -18,12 +18,34 @@ export class LeadCategoryRepository
   }
 
   async findByKeywordMatch(text: string): Promise<LeadCategoryModel[]> {
+    const normalize = (str: string) =>
+      str
+        .toLowerCase()
+        .normalize('NFD')
+        .replaceAll(/[\u0300-\u036f]/g, '')
+
+    // Extrai palavras relevantes do texto (mínimo 3 caracteres)
+    const words = normalize(text)
+      .split(/[\s|,]+/)
+      .map(w => w.trim())
+      .filter(w => w.length >= 3)
+
+    if (!words.length) {
+      return []
+    }
+
+    // Busca categorias ativas
     const result = await this.db
       .select()
       .from(this.table)
-      .where(ILikeOperator(this.table.keywords, `%${text}%`))
+      .where(eq(this.table.isActive, true))
 
-    return result
+    // Filtra categorias que têm match com alguma palavra do texto
+    // Considera tanto keywords quanto o nome da categoria
+    return result.filter(category => {
+      const searchableText = normalize(`${category.keywords},${category.name}`)
+      return words.some(word => searchableText.includes(word))
+    })
   }
 
   async findActive(): Promise<LeadCategoryModel[]> {

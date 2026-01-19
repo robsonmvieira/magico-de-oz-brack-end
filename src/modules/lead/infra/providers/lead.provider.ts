@@ -7,12 +7,12 @@ import { SearchLeadUseCase } from '@modules/lead/application/use-cases/lead/sear
 import { AutocompleteLeadUseCase } from '@modules/lead/application/use-cases/lead/autocomplete/autocomplete-lead.use-case'
 import { LeadRepository } from '../repositories'
 import { RedisCacheRepository } from '@modules/shared/infra/cache'
-import { SerperGoogleMapsProvider } from '../services'
+import { GoogleMapsProvider } from '../services'
 
 const REPOSITORY_PROVIDERS = {
   IGoogleMapsProvider: {
     provide: 'IGoogleMapsProvider',
-    useClass: SerperGoogleMapsProvider
+    useClass: GoogleMapsProvider
   },
   ILeadRepository: {
     provide: 'ILeadRepository',

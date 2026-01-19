@@ -14,11 +14,10 @@ export class KeywordCategoryClassifier implements ICategoryClassifierDomainServi
 
   async findBestMatch(text: string): Promise<CategoryMatchResult | null> {
     const categoriesModel = await this.repository.findByKeywordMatch(text)
-
+    // console.log('total de categorias', categoriesModel.length)
     if (!categoriesModel.length) {
       return null
     }
-
     const normalizedText = text.toLowerCase()
     const textWords = normalizedText.split(/\s+/)
 
