@@ -1,12 +1,73 @@
 import {
   GoogleMapsAutoCompleteResponse,
-  GoogleMapsPlaceResponse,
+  GooglePlaceResponse,
   GoogleMapsPlaceReviewResponse,
   IGoogleMapsProvider
 } from '@modules/lead/domain/services/googlemaps'
 import { ConfigService } from '@nestjs/config'
 import axios, { AxiosInstance } from 'axios'
 import { Injectable } from '@nestjs/common'
+
+const GOOGLE_PLACES_FIELD_MASK = [
+  'places.id',
+  'places.name',
+  'places.types',
+  'places.nationalPhoneNumber',
+  'places.internationalPhoneNumber',
+  'places.formattedAddress',
+  'places.addressComponents',
+  'places.plusCode',
+  'places.location',
+  'places.viewport',
+  'places.rating',
+  'places.googleMapsUri',
+  'places.websiteUri',
+  'places.regularOpeningHours',
+  'places.utcOffsetMinutes',
+  'places.adrFormatAddress',
+  'places.businessStatus',
+  'places.priceLevel',
+  'places.userRatingCount',
+  'places.iconMaskBaseUri',
+  'places.iconBackgroundColor',
+  'places.displayName',
+  'places.primaryTypeDisplayName',
+  'places.takeout',
+  'places.delivery',
+  'places.dineIn',
+  'places.reservable',
+  'places.servesBreakfast',
+  'places.servesLunch',
+  'places.servesDinner',
+  'places.servesBeer',
+  'places.servesWine',
+  'places.servesVegetarianFood',
+  'places.currentOpeningHours',
+  'places.primaryType',
+  'places.shortFormattedAddress',
+  'places.editorialSummary',
+  'places.reviews',
+  'places.photos',
+  'places.outdoorSeating',
+  'places.liveMusic',
+  'places.menuForChildren',
+  'places.servesCocktails',
+  'places.servesDessert',
+  'places.servesCoffee',
+  'places.goodForChildren',
+  'places.allowsDogs',
+  'places.restroom',
+  'places.goodForGroups',
+  'places.goodForWatchingSports',
+  'places.paymentOptions',
+  'places.parkingOptions',
+  'places.accessibilityOptions',
+  'places.addressDescriptor',
+  'places.googleMapsLinks',
+  'places.reviewSummary',
+  'places.timeZone',
+  'places.postalAddress'
+].join(',')
 
 @Injectable()
 export class GoogleMapsProvider implements IGoogleMapsProvider {
@@ -16,8 +77,7 @@ export class GoogleMapsProvider implements IGoogleMapsProvider {
       baseURL: 'https://places.googleapis.com/v1',
       headers: {
         'X-Goog-Api-Key': this.configService.get('GOOGLE_MAPS_API_KEY'),
-        'X-Goog-FieldMask':
-          'places.displayName,places.formattedAddress,places.priceLevel',
+        'X-Goog-FieldMask': GOOGLE_PLACES_FIELD_MASK,
         'Content-Type': 'application/json'
       }
     })
@@ -27,12 +87,14 @@ export class GoogleMapsProvider implements IGoogleMapsProvider {
     query: string,
     country: string,
     location: string
-  ): Promise<GoogleMapsPlaceResponse> {
-    const textQuery = `${query} in ${location}, ${country}`
+  ): Promise<GooglePlaceResponse> {
+    const textQuery = `${query}, ${location}- ${country}`
     return await this.axiosInstance
-      .post('/places:searchText', { textQuery })
+      .post('/places:searchText', {
+        textQuery,
+        languageCode: 'pt-BR'
+      })
       .then(response => {
-        console.log('response => ', response.data)
         return response.data
       })
       .catch(error => {

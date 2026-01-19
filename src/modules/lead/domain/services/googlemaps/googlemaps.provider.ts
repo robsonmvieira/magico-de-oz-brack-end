@@ -1,6 +1,6 @@
 import {
   GoogleMapsAutoCompleteResponse,
-  GoogleMapsPlaceResponse,
+  GooglePlaceResponse,
   GoogleMapsPlaceReviewResponse
 } from './types'
 
@@ -9,7 +9,7 @@ export interface IGoogleMapsProvider {
     query: string,
     country: string,
     location: string
-  ): Promise<GoogleMapsPlaceResponse>
+  ): Promise<GooglePlaceResponse>
   getReviews(
     placeId: string,
     country: string
