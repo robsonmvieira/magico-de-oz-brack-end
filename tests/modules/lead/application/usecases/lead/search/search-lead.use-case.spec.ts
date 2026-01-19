@@ -1,7 +1,7 @@
 import { SearchLeadUseCase } from '@modules/lead/application/use-cases/lead/search/search-lead.use-case'
 import { IGoogleMapsProvider } from '@modules/lead/domain/services/googlemaps/googlemaps.provider'
 import { HttpStatus } from '@nestjs/common'
-import { GoogleMapsPlaceResponse } from '@modules/lead/domain/services/googlemaps/types'
+import { GooglePlaceResponse } from '@modules/lead/domain/services/googlemaps/types'
 import { ICategoryClassifierDomainService } from '@modules/lead/domain/domain-services'
 import {
   ILeadCategoryRepository,
@@ -47,47 +47,47 @@ const createMockLocationRepository = (): jest.Mocked<ILocationRepository> => ({
   searchByName: jest.fn()
 })
 
-const createMockSearchResponse = (
-  overrides: Partial<GoogleMapsPlaceResponse> = {}
-): GoogleMapsPlaceResponse => ({
-  searchParameters: {
-    q: 'restaurants',
-    hl: 'pt-BR',
-    type: 'maps',
-    num: 10,
-    page: 1,
-    engine: 'google_maps'
-  },
-  ll: '-23.55,-46.63',
-  places: [
-    {
-      position: 1,
-      title: 'Restaurant ABC',
-      address: 'Rua Test, 123, São Paulo',
-      latitude: -23.55,
-      longitude: -46.63,
-      rating: 4.5,
-      ratingCount: 100,
-      priceLevel: '$$',
-      type: 'Restaurant',
-      types: ['restaurant', 'food']
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const createMockSearchResponse = (overrides: any = {}): GooglePlaceResponse =>
+  ({
+    searchParameters: {
+      q: 'restaurants',
+      hl: 'pt-BR',
+      type: 'maps',
+      num: 10,
+      page: 1,
+      engine: 'google_maps'
     },
-    {
-      position: 2,
-      title: 'Restaurant XYZ',
-      address: 'Av. Paulista, 456, São Paulo',
-      latitude: -23.56,
-      longitude: -46.64,
-      rating: 4.2,
-      ratingCount: 50,
-      priceLevel: '$',
-      type: 'Restaurant',
-      types: ['restaurant']
-    }
-  ],
-  credits: 1,
-  ...overrides
-})
+    ll: '-23.55,-46.63',
+    places: [
+      {
+        position: 1,
+        title: 'Restaurant ABC',
+        address: 'Rua Test, 123, São Paulo',
+        latitude: -23.55,
+        longitude: -46.63,
+        rating: 4.5,
+        ratingCount: 100,
+        priceLevel: '$$',
+        type: 'Restaurant',
+        types: ['restaurant', 'food']
+      },
+      {
+        position: 2,
+        title: 'Restaurant XYZ',
+        address: 'Av. Paulista, 456, São Paulo',
+        latitude: -23.56,
+        longitude: -46.64,
+        rating: 4.2,
+        ratingCount: 50,
+        priceLevel: '$',
+        type: 'Restaurant',
+        types: ['restaurant']
+      }
+    ],
+    credits: 1,
+    ...overrides
+  }) as unknown as GooglePlaceResponse
 
 describe('SearchLeadUseCase', () => {
   let useCase: SearchLeadUseCase
