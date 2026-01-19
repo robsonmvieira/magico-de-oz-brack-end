@@ -5,7 +5,7 @@ import { UpdateCategoryUseCase } from '@modules/lead/application/use-cases/lead-
 import { DeleteCategoryUseCase } from '@modules/lead/application/use-cases/lead-category/delete/delete-category.use-case'
 import { LeadCategoryRepository, LocationRepository } from '../repositories'
 import { RedisCacheRepository } from '@modules/shared/infra/cache'
-import { KeywordCategoryClassifier } from '../services'
+import { IAClassifierCategory } from '../services'
 import { SearchLocationUseCase } from '@modules/lead/application/use-cases/lead/search-location/search-location.use-case'
 
 const REPOSITORY_PROVIDERS = {
@@ -15,7 +15,7 @@ const REPOSITORY_PROVIDERS = {
   },
   ICategoryClassifierDomainService: {
     provide: 'ICategoryClassifierDomainService',
-    useClass: KeywordCategoryClassifier
+    useClass: IAClassifierCategory
   },
   ICacheRepository: {
     provide: 'ICacheRepository',
