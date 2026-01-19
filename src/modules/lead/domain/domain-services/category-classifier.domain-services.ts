@@ -5,6 +5,6 @@ export interface CategoryMatchResult {
   matchCount: number
   confidence: number // 0-100
 }
-export interface ICategoryClassifierDomainService {
-  findBestMatch(text: string): Promise<CategoryMatchResult | null>
+export interface ICategoryClassifierDomainService<T = any> {
+  findBestMatch(content: any): Promise<T>
 }
