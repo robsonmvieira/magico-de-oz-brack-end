@@ -84,6 +84,13 @@ export class LeadCategoryInMemoryRepository implements ILeadCategoryRepository {
     return this.items.some(item => item.name === name)
   }
 
+  async upsert(entity: NewLeadCategoryModel): Promise<void> {
+    const existingIndex = this.items.findIndex(item => item.id === entity.id)
+    if (existingIndex === -1) {
+      await this.save(entity)
+    }
+  }
+
   clear(): void {
     this.items = []
   }

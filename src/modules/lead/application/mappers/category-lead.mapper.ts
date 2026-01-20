@@ -75,4 +75,19 @@ export class LeadCategoryMapper {
       color: entity._color.value
     }
   }
+
+  static toModelFromIAClassifier(iaLeadCategory: any): NewLeadCategoryModel {
+    return {
+      id: iaLeadCategory.id,
+      name: iaLeadCategory.name,
+      slug: iaLeadCategory.slug,
+      description: iaLeadCategory.description,
+      priority: iaLeadCategory.priority,
+      score_bonus: iaLeadCategory.score_bonus,
+      keywords: Array.isArray(iaLeadCategory.keywords)
+        ? iaLeadCategory.keywords.join(',')
+        : iaLeadCategory.keywords,
+      color: iaLeadCategory.color
+    }
+  }
 }

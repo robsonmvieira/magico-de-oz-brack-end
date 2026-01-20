@@ -1,11 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 import { DrizzleRepository } from '@modules/shared/infra/repositories'
-import { DRIZZLE, DrizzleDB } from '@modules/database'
+import { DRIZZLE, DrizzleDB, DrizzleClient } from '@modules/database'
 import { ILeadCategoryRepository } from '@modules/lead/domain/repositories'
 import {
   LeadCategorySchema,
-  LeadCategoryModel
+  LeadCategoryModel,
+  NewLeadCategoryModel
 } from '@modules/lead/domain/models/lead-category.model'
 
 @Injectable()
@@ -80,5 +81,15 @@ export class LeadCategoryRepository
       .limit(1)
 
     return result.length > 0
+  }
+
+  async upsert(
+    entity: NewLeadCategoryModel,
+    tx?: DrizzleClient
+  ): Promise<void> {
+    await this.getDb(tx)
+      .insert(this.table)
+      .values(entity as any)
+      .onConflictDoNothing({ target: this.table.id })
   }
 }

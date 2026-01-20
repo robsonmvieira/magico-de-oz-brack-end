@@ -5,8 +5,10 @@ import { GooglePlaceResponse } from '@modules/lead/domain/services/googlemaps/ty
 import { ICategoryClassifierDomainService } from '@modules/lead/domain/domain-services'
 import {
   ILeadCategoryRepository,
+  ILeadRepository,
   ILocationRepository
 } from '@modules/lead/domain/repositories'
+import { IUnitOfWork } from '@modules/core/domain/repositories'
 
 const createMockGoogleMapsProvider = (): jest.Mocked<IGoogleMapsProvider> => ({
   search: jest.fn(),
@@ -16,7 +18,8 @@ const createMockGoogleMapsProvider = (): jest.Mocked<IGoogleMapsProvider> => ({
 
 const createMockCategoryClassifier =
   (): jest.Mocked<ICategoryClassifierDomainService> => ({
-    findBestMatch: jest.fn()
+    findBestMatch: jest.fn(),
+    classifyChunk: jest.fn()
   })
 
 const createMockLeadCategoryRepository =
@@ -30,8 +33,35 @@ const createMockLeadCategoryRepository =
     update: jest.fn(),
     delete: jest.fn(),
     findByKeywordMatch: jest.fn(),
-    findActive: jest.fn()
+    findActive: jest.fn(),
+    upsert: jest.fn()
   })
+
+const createMockLeadRepository = (): jest.Mocked<ILeadRepository> => ({
+  save: jest.fn(),
+  findById: jest.fn(),
+  findAll: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  findByCompanyName: jest.fn(),
+  findByEmail: jest.fn(),
+  findByPhone: jest.fn(),
+  findByCategoryId: jest.fn(),
+  findByStage: jest.fn(),
+  findByTemperature: jest.fn(),
+  findActive: jest.fn(),
+  findByGooglePlaceId: jest.fn(),
+  findByCnpj: jest.fn(),
+  exists: jest.fn(),
+  existsByCompanyName: jest.fn(),
+  existsByEmail: jest.fn()
+})
+
+const createMockUnitOfWork = (): jest.Mocked<IUnitOfWork<any>> => ({
+  do: jest.fn().mockImplementation(async fn => fn({})),
+  addAggregate: jest.fn(),
+  getAggregates: jest.fn()
+})
 
 const createMockLocationRepository = (): jest.Mocked<ILocationRepository> => ({
   save: jest.fn(),
@@ -94,25 +124,62 @@ describe('SearchLeadUseCase', () => {
   let googleMapsProvider: jest.Mocked<IGoogleMapsProvider>
   let categoryClassifier: jest.Mocked<ICategoryClassifierDomainService>
   let leadCategoryRepository: jest.Mocked<ILeadCategoryRepository>
+  let leadRepository: jest.Mocked<ILeadRepository>
   let locationRepository: jest.Mocked<ILocationRepository>
+  let uow: jest.Mocked<IUnitOfWork<any>>
 
   beforeEach(() => {
     googleMapsProvider = createMockGoogleMapsProvider()
     categoryClassifier = createMockCategoryClassifier()
     leadCategoryRepository = createMockLeadCategoryRepository()
+    leadRepository = createMockLeadRepository()
     locationRepository = createMockLocationRepository()
+    uow = createMockUnitOfWork()
 
     useCase = new SearchLeadUseCase()
     ;(useCase as any).googleMapsProvider = googleMapsProvider
     ;(useCase as any).categoryClassifier = categoryClassifier
     ;(useCase as any).leadCategoryRepository = leadCategoryRepository
+    ;(useCase as any).leadRepository = leadRepository
     ;(useCase as any).locationRepository = locationRepository
+    ;(useCase as any).uow = uow
   })
 
   describe('execute', () => {
     it('should return success when search completes', async () => {
       googleMapsProvider.search.mockResolvedValue(createMockSearchResponse())
-      locationRepository.searchByName.mockResolvedValue([])
+      categoryClassifier.classifyChunk.mockResolvedValue([
+        {
+          lead_category: {
+            id: '550e8400-e29b-41d4-a716-446655440000',
+            name: 'Restaurantes',
+            slug: 'restaurantes',
+            description: 'Restaurantes em geral',
+            priority: 1,
+            score_bonus: 0,
+            keywords: ['restaurante', 'comida'],
+            color: 'blue'
+          },
+          is_new_category: false,
+          confidence_score: 0.95,
+          place: {
+            id: 'ChIJN1t_tDeuEmsRUsoyG83frY4',
+            name: 'Restaurant ABC',
+            displayName: { text: 'Restaurant ABC' },
+            formattedAddress:
+              'Rua Test, 123, Centro, São Paulo - SP, 01234-567',
+            internationalPhoneNumber: '11999999999',
+            websiteUri: 'https://restaurantabc.com.br',
+            location: { latitude: -23.55, longitude: -46.63 },
+            addressComponents: [
+              { longText: 'Rua Test, 123', shortText: 'Rua Test, 123' },
+              { longText: 'São Paulo', shortText: 'SP' },
+              { longText: '01234-567', shortText: '01234-567' },
+              { longText: 'Centro', shortText: 'Centro' }
+            ]
+          }
+        }
+      ])
 
       const result = await useCase.execute('restaurants', 'BR', 'São Paulo')
 

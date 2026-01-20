@@ -31,6 +31,7 @@ import {
   LeadTemperature,
   CompanySize
 } from '@modules/lead/domain/enums'
+import { GooglePlace } from '@modules/lead/domain/services/googlemaps'
 
 export class LeadMapper {
   /**
@@ -346,5 +347,33 @@ export class LeadMapper {
       createdAt: entity.created_at,
       updatedAt: entity.updated_at
     }
+  }
+
+  static fromGooglePlaceToEntity(
+    leadCategoryId: string,
+    googlePlace: GooglePlace
+  ): LeadEntity {
+    const addressComponents = googlePlace.addressComponents || []
+    return LeadEntity.create({
+      leadCategoryId,
+      companyName:
+        googlePlace.name || googlePlace.displayName?.text || 'Unknown',
+      source: LeadSource.GOOGLE_MAPS,
+      tradeName: googlePlace.displayName?.text,
+      phone: googlePlace.internationalPhoneNumber,
+      website: googlePlace.websiteUri,
+      address:
+        addressComponents.length >= 4
+          ? {
+              street: addressComponents[0]?.longText,
+              city: addressComponents[1]?.longText,
+              state: addressComponents[1]?.shortText,
+              zipCode: addressComponents[2]?.shortText,
+              neighborhood: addressComponents[3]?.shortText,
+              latitude: googlePlace.location?.latitude,
+              longitude: googlePlace.location?.longitude
+            }
+          : undefined
+    })
   }
 }

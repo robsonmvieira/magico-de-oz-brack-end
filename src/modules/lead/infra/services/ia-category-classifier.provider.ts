@@ -26,54 +26,72 @@ export type IALeadCategoryClassifierInput = {
   allow_new_categories: boolean
 }
 
+export type IALeadCategoryClassifierPlace = {
+  id: string
+  name: string
+  displayName: {
+    text: string
+  }
+  internationalPhoneNumber?: string
+  websiteUri?: string
+  formattedAddress: string
+  location: {
+    latitude: number
+    longitude: number
+  }
+  addressComponents?: unknown[]
+}
+
+export type IALeadCategory = {
+  id: string
+  name: string
+  slug: string
+  description: string
+  priority: number
+  score_bonus: number
+  keywords: string[]
+  color: string
+}
+
+export type IAClassificationResult = {
+  lead_category: IALeadCategory
+  is_new_category: boolean
+  confidence_score: number
+  place: IALeadCategoryClassifierPlace
+}
+
 export type IALeadCategoryClassifierOutput = {
   created_at: string
   has_error: boolean
   error: null | string
   error_message: null | string
+  data: IAClassificationResult
+  success: boolean
+  StatusCode: number
+}
+
+export type IALeadCategoryClassifierBatchOutput = {
+  created_at: string
+  has_error: boolean
+  error: null | string
+  error_message: null | string
   data: {
-    lead_category: {
-      id: string
-      name: string
-      slug: string
-      description: string
-      error: null
-      error_message: null
-      data: {
-        lead_category: {
-          id: string
-          name: string
-          slug: string
-          description: string
-          priority: number
-          score_bonus: number
-          keywords: string[]
-          color: string
-        }
-        is_new_category: boolean
-        confidence_score: number
-        classification_metadata: {
-          primary_type: string
-          place_types: string[]
-          display_name: string
-          reasoning: string
-        }
-      }
-      success: boolean
-      StatusCode: number
-    }
-    is_new_category: boolean
-    classification_metadata: {
-      primary_type?: string
-      place_types?: string[]
-      display_name?: string
-      reasoning?: string
+    results: IAClassificationResult[]
+    statistics: {
+      total: number
+      successful: number
+      failed: number
     }
   }
+  success: boolean
+  StatusCode: number
 }
 
 @Injectable()
-export class IAClassifierCategory implements ICategoryClassifierDomainService<IALeadCategoryClassifierOutput> {
+export class IAClassifierCategory implements ICategoryClassifierDomainService<
+  IALeadCategoryClassifierOutput,
+  IAClassificationResult
+> {
   private readonly axiosInstance: AxiosInstance
 
   constructor(private readonly configService: ConfigService) {
@@ -111,5 +129,30 @@ export class IAClassifierCategory implements ICategoryClassifierDomainService<IA
         throw new Error(`Error classifying lead category: ${error.message}`)
       })
     return response.data
+  }
+
+  async classifyChunk(content: any[]): Promise<IAClassificationResult[]> {
+    const url = 'lead-categories/classify-batch'
+    const fullUrl = `${this.axiosInstance.defaults.baseURL}${url}`
+
+    const payload = {
+      places: content
+    }
+
+    const response = await this.axiosInstance
+      .post<IALeadCategoryClassifierBatchOutput>(url, payload)
+      .then(response => {
+        return response.data.data.results
+      })
+      .catch(error => {
+        console.error('Request URL:', fullUrl)
+        console.error(
+          'Error details:',
+          error.response?.status,
+          error.response?.data
+        )
+        throw new Error(`Error classifying lead category: ${error.message}`)
+      })
+    return response
   }
 }

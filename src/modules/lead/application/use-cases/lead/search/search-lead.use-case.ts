@@ -1,18 +1,18 @@
-import {
-  GooglePlace,
-  IGoogleMapsProvider
-} from '@modules/lead/domain/services/googlemaps'
+import { IGoogleMapsProvider } from '@modules/lead/domain/services/googlemaps'
 import { HttpStatus, Inject, Injectable } from '@nestjs/common'
 import { LeadOutput } from '../list'
 import { ModelCollectionOutput } from '@modules/core/application/use-cases/common'
 import { ICategoryClassifierDomainService } from '@modules/lead/domain/domain-services'
-import { ILeadCategoryRepository } from '@modules/lead/domain/repositories'
+import {
+  ILeadCategoryRepository,
+  ILeadRepository
+} from '@modules/lead/domain/repositories'
 import { IUnitOfWork } from '@modules/core/domain/repositories'
 import { DrizzleTransaction } from '@modules/database'
-import {
-  IALeadCategoryClassifierInput,
-  IALeadCategoryClassifierOutput
-} from '@modules/lead/infra/services'
+import { IAClassificationResult } from '@modules/lead/infra/services'
+import { LeadCategoryMapper } from '@modules/lead/application/mappers'
+import { LeadMapper } from '@modules/lead/application/mappers/lead.mapper'
+import { LeadEntity } from '@modules/lead/domain/entities'
 
 @Injectable()
 export class SearchLeadUseCase {
@@ -31,12 +31,10 @@ export class SearchLeadUseCase {
   private readonly leadCategoryRepository: ILeadCategoryRepository
   @Inject('IGoogleMapsProvider')
   private readonly googleMapsProvider: IGoogleMapsProvider
-
+  @Inject('ILeadRepository')
+  private readonly leadRepository: ILeadRepository
   @Inject('ICategoryClassifierDomainService')
   private readonly categoryClassifier: ICategoryClassifierDomainService
-
-  // @Inject('ILocationRepository')
-  // private readonly locationRepository: ILocationRepository
 
   async execute(
     query: string,
@@ -50,22 +48,39 @@ export class SearchLeadUseCase {
         location
       )
 
-      for (const [index, place] of googleMapsData.places.entries()) {
-        if (index > 1) break
-        const classificationText = this.buildClassificationText(place)
-        const categoryMatch: IALeadCategoryClassifierOutput =
-          await this.categoryClassifier.findBestMatch(classificationText)
+      const CHUNK_SIZE = 10
+      const chunks: any[] = []
 
-        // console.log('Place:', place.displayName?.text)
-        // console.log('Classification text:', classificationText)
-        // console.log('Category match:', categoryMatch?.category?._name ?? 'None')
-        // console.log('Confidence:', categoryMatch?.confidence ?? 0)
-        console.log('is new category:', categoryMatch?.data?.is_new_category)
-        // console.log(
-        //   'classification metadata:',
-        //   categoryMatch?.classification_metadata
-        // )
-        console.log('---')
+      for (let i = 0; i < googleMapsData.places.length; i += CHUNK_SIZE) {
+        chunks.push(googleMapsData.places.slice(i, i + CHUNK_SIZE))
+      }
+
+      for (const chunk of chunks) {
+        // get category text to send to the classifier
+        // const classificationText = this.buildClassificationText(place)
+
+        // receive the category match from the classifier
+        const classifications: IAClassificationResult[] =
+          await this.categoryClassifier.classifyChunk(chunk)
+
+        // unit of work to save the category and lead
+        await this.uow.do(async tx => {
+          for (const classification of classifications) {
+            // create the category model from the classifier output
+            const categoryModel = LeadCategoryMapper.toModelFromIAClassifier(
+              classification.lead_category
+            )
+            // upsert category - inserts if not exists, ignores if already exists
+            await this.leadCategoryRepository.upsert(categoryModel, tx)
+
+            const leadEntity = this.buildLeadEntityFromGooglePlace(
+              categoryModel.id,
+              classification.place
+            )
+            const leadModel = LeadMapper.toModel(leadEntity)
+            await this.leadRepository.save(leadModel, tx)
+          }
+        })
       }
 
       return new ModelCollectionOutput<LeadOutput>({
@@ -85,27 +100,10 @@ export class SearchLeadUseCase {
     }
   }
 
-  private buildClassificationText(
-    place: GooglePlace
-  ): IALeadCategoryClassifierInput {
-    return {
-      place_data: {
-        primaryType: place.primaryType,
-        types: place.types,
-        displayName: { text: place.displayName?.text ?? '' },
-        primaryTypeDisplayName: {
-          text: place.primaryTypeDisplayName?.text ?? ''
-        },
-        editorialSummary: { text: place.editorialSummary?.text ?? '' },
-        priceLevel: place.priceLevel ?? '',
-        servesBeer: place.servesBeer ?? false,
-        servesWine: place.servesWine ?? false,
-        servesCocktails: place.servesCocktails ?? false,
-        servesBreakfast: place.servesBreakfast ?? false,
-        servesLunch: place.servesLunch ?? false,
-        servesDinner: place.servesDinner ?? false
-      },
-      allow_new_categories: true
-    }
+  private buildLeadEntityFromGooglePlace(
+    leadCategoryId: string,
+    googlePlace: any
+  ): LeadEntity {
+    return LeadMapper.fromGooglePlaceToEntity(leadCategoryId, googlePlace)
   }
 }
