@@ -3,6 +3,7 @@ import {
   NewLeadCategoryModel
 } from '../models/lead-category.model'
 import { IRepository } from '@modules/core/domain/repositories'
+import { DrizzleClient } from '@modules/database'
 
 export interface ILeadCategoryRepository extends IRepository<
   LeadCategoryModel,
@@ -13,4 +14,5 @@ export interface ILeadCategoryRepository extends IRepository<
   findBySlug(slug: string): Promise<LeadCategoryModel | null>
   exists(id: string): Promise<boolean>
   existsByName(name: string): Promise<boolean>
+  upsert(entity: NewLeadCategoryModel, tx?: DrizzleClient): Promise<void>
 }

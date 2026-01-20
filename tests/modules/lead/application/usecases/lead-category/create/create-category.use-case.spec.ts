@@ -18,7 +18,8 @@ describe('CreateCategoryUseCase', () => {
       findActive: jest.fn(),
       findBySlug: jest.fn(),
       exists: jest.fn(),
-      existsByName: jest.fn()
+      existsByName: jest.fn(),
+      upsert: jest.fn()
     }
 
     const module: TestingModule = await Test.createTestingModule({

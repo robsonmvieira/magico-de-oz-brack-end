@@ -9,6 +9,10 @@ import { Inject, Injectable } from '@nestjs/common'
 
 @Injectable()
 export class KeywordCategoryClassifier implements ICategoryClassifierDomainService {
+  classifyChunk(content: any[]): Promise<any[]> {
+    console.log('content => ', content)
+    throw new Error('Method not implemented.')
+  }
   @Inject('ILeadCategoryRepository')
   private readonly repository: ILeadCategoryRepository
 
