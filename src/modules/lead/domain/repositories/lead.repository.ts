@@ -1,6 +1,7 @@
 import { IRepository } from '@modules/core/domain/repositories'
 import { LeadModel, NewLeadModel } from '../models'
 import { LeadStage, LeadTemperature } from '../enums'
+import { SimpleModel } from '../models/simple.model'
 
 export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   // Busca por campos únicos
@@ -28,4 +29,10 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   exists(id: string): Promise<boolean>
   existsByCompanyName(companyName: string): Promise<boolean>
   existsByEmail(email: string): Promise<boolean>
+
+  // simple module
+  findByMEI(mei: string): Promise<SimpleModel | null>
+  findSimpleByBasicDoc(basicDoc: string): Promise<SimpleModel | null>
+  createSimple(simple: SimpleModel): Promise<SimpleModel>
+  bulkSimple(simples: SimpleModel[]): Promise<SimpleModel[]>
 }

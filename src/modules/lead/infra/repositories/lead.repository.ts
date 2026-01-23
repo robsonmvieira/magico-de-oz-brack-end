@@ -5,14 +5,59 @@ import { DRIZZLE, DrizzleDB } from '@modules/database'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadSchema, LeadModel } from '@modules/lead/domain/models'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
+import {
+  SimpleModel,
+  SimpleSchema
+} from '@modules/lead/domain/models/simple.model'
 
 @Injectable()
 export class LeadRepository
   extends DrizzleRepository<typeof LeadSchema>
   implements ILeadRepository
 {
+  private readonly simpleTable = SimpleSchema
+
   constructor(@Inject(DRIZZLE) db: DrizzleDB) {
     super(db, LeadSchema)
+  }
+
+  async findByMEI(mei: string): Promise<SimpleModel | null> {
+    const result = await this.db
+      .select()
+      .from(this.simpleTable)
+      .where(eq(this.simpleTable.choose_mei, mei))
+      .limit(1)
+
+    return result[0] || null
+  }
+
+  async createSimple(simple: SimpleModel): Promise<SimpleModel> {
+    const result = await this.db
+      .insert(this.simpleTable)
+      .values(simple)
+      .returning()
+
+    return result[0]
+  }
+
+  async bulkSimple(simples: SimpleModel[]): Promise<SimpleModel[]> {
+    const result = await this.db
+      .insert(this.simpleTable)
+      .values(simples)
+      .returning()
+
+    return result
+  }
+
+  async findSimpleByBasicDoc(basicDoc: string): Promise<SimpleModel | null> {
+    const normalizedDoc = basicDoc.replaceAll(/\D/g, '')
+    const result = await this.db
+      .select()
+      .from(this.simpleTable)
+      .where(eq(this.simpleTable.basic_doc, normalizedDoc))
+      .limit(1)
+
+    return result[0] || null
   }
 
   async findByCompanyName(companyName: string): Promise<LeadModel | null> {

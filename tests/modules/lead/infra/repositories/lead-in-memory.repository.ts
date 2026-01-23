@@ -1,10 +1,12 @@
 import { LeadModel, NewLeadModel } from '@modules/lead/domain/models'
+import { SimpleModel } from '@modules/lead/domain/models/simple.model'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
 
 export class LeadInMemoryRepository implements ILeadRepository {
   private items: LeadModel[] = []
+  private readonly simpleItems: SimpleModel[] = []
 
   async save(entity: NewLeadModel): Promise<void> {
     const now = new Date()
@@ -138,12 +140,42 @@ export class LeadInMemoryRepository implements ILeadRepository {
     return this.items.some(item => !item.isDeleted && item.email === email)
   }
 
+  // Simple module methods
+  async findByMEI(mei: string): Promise<SimpleModel | null> {
+    return this.simpleItems.find(item => item.choose_mei === mei) ?? null
+  }
+
+  async findSimpleByBasicDoc(basicDoc: string): Promise<SimpleModel | null> {
+    const normalizedDoc = basicDoc.replaceAll(/\D/g, '')
+    return (
+      this.simpleItems.find(item => item.basic_doc === normalizedDoc) ?? null
+    )
+  }
+
+  async createSimple(simple: SimpleModel): Promise<SimpleModel> {
+    this.simpleItems.push(simple)
+    return simple
+  }
+
+  async bulkSimple(simples: SimpleModel[]): Promise<SimpleModel[]> {
+    this.simpleItems.push(...simples)
+    return simples
+  }
+
   // Métodos auxiliares para testes
   clear(): void {
     this.items = []
   }
 
+  clearSimple(): void {
+    this.simpleItems.length = 0
+  }
+
   getItems(): LeadModel[] {
     return [...this.items]
+  }
+
+  getSimpleItems(): SimpleModel[] {
+    return [...this.simpleItems]
   }
 }
