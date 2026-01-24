@@ -465,18 +465,19 @@ describe('SimpleImportProcessor', () => {
     it('should release client in finally block', async () => {
       const job = createMockJob()
 
-      // Reset mock to track calls
-      mockClient.release.mockClear()
-
-      // Force an error on first query (CREATE TEMP TABLE) to test finally block
-      mockClient.query.mockRejectedValueOnce(new Error('Connection error'))
+      // Create a fresh mock client with a query that fails on first call
+      const freshMockClient = {
+        query: jest.fn().mockRejectedValueOnce(new Error('Connection error')),
+        release: jest.fn()
+      }
+      ;(mockPool.connect as jest.Mock).mockResolvedValueOnce(freshMockClient)
 
       await expect(
         (processor as any).importWithCopy(testFilePath, ';', true, job)
       ).rejects.toThrow('Connection error')
 
       // Client should still be released even on error
-      expect(mockClient.release).toHaveBeenCalled()
+      expect(freshMockClient.release).toHaveBeenCalled()
     })
 
     it('should release client on error', async () => {

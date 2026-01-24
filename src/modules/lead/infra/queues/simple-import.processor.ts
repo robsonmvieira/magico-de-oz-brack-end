@@ -87,6 +87,9 @@ export class SimpleImportProcessor {
     const tempTableName = `simples_temp_${Date.now()}`
 
     try {
+      // Start transaction
+      await client.query('BEGIN')
+
       // 1. Create temporary table with same structure
       this.logger.log(`Creating temporary table: ${tempTableName}`)
       await client.query(`
@@ -126,6 +129,13 @@ export class SimpleImportProcessor {
       const copyRowCount = pgStream.rowCount ?? 0
       this.logger.log(`COPY completed: ${copyRowCount} rows to temp table`)
 
+      // Verify temp table has data
+      const tempCountResult = await client.query(
+        `SELECT COUNT(*) as count FROM ${tempTableName}`
+      )
+      const tempCount = Number.parseInt(tempCountResult.rows[0].count, 10)
+      this.logger.log(`Temp table verification: ${tempCount} rows`)
+
       // 3. Upsert from temp table to main table using ON CONFLICT
       this.logger.log('Starting upsert to main table...')
       const upsertResult = await client.query(`
@@ -149,13 +159,24 @@ export class SimpleImportProcessor {
       await client.query(`DROP TABLE IF EXISTS ${tempTableName}`)
       this.logger.log(`Temporary table ${tempTableName} dropped`)
 
+      // Commit transaction
+      await client.query('COMMIT')
+      this.logger.log('Transaction committed successfully')
+
       return {
-        totalProcessed: copyRowCount,
+        totalProcessed: tempCount,
         totalImported: upsertRowCount,
         totalErrors: 0,
         errors: []
       }
     } catch (error) {
+      // Rollback on error
+      try {
+        await client.query('ROLLBACK')
+        this.logger.warn('Transaction rolled back due to error')
+      } catch {
+        // Ignore rollback errors
+      }
       // Clean up temp table on error
       try {
         await client.query(`DROP TABLE IF EXISTS ${tempTableName}`)
