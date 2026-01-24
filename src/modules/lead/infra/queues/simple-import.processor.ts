@@ -84,36 +84,18 @@ export class SimpleImportProcessor {
     job: Job<SimpleImportJobData>
   ): Promise<Omit<SimpleImportJobResult, 'durationMs'>> {
     const client = await this.pool.connect()
-    const tempTableName = `simples_temp_${Date.now()}`
 
     try {
-      // Start transaction
-      await client.query('BEGIN')
+      // 1. Drop unique constraint for faster bulk insert
+      this.logger.log('Dropping unique constraint for bulk insert...')
+      await client.query(
+        'ALTER TABLE simples DROP CONSTRAINT IF EXISTS simples_basic_doc_unique'
+      )
 
-      // 1. Create temporary table with same structure
-      this.logger.log(`Creating temporary table: ${tempTableName}`)
-      await client.query(`
-        CREATE TEMP TABLE ${tempTableName} (
-          id UUID NOT NULL,
-          basic_doc TEXT NOT NULL,
-          choose_simple_module TEXT,
-          date_simple_module_start TIMESTAMP,
-          date_exclude_simple_module_start TIMESTAMP,
-          choose_mei TEXT,
-          date_mei_start TIMESTAMP,
-          date_exclude_mei_start TIMESTAMP,
-          created_at TIMESTAMP NOT NULL,
-          updated_at TIMESTAMP NOT NULL,
-          is_deleted BOOLEAN NOT NULL DEFAULT false,
-          is_active BOOLEAN NOT NULL DEFAULT true,
-          is_blocked BOOLEAN NOT NULL DEFAULT false
-        )
-      `)
-
-      // 2. COPY data into temp table (very fast, no constraints)
-      this.logger.log('Starting COPY to temporary table...')
+      // 2. COPY data directly into main table (very fast without unique constraint)
+      this.logger.log('Starting COPY directly to simples table...')
       const copyQuery = copyFrom(
-        `COPY ${tempTableName} (id, basic_doc, choose_simple_module, date_simple_module_start, date_exclude_simple_module_start, choose_mei, date_mei_start, date_exclude_mei_start, created_at, updated_at, is_deleted, is_active, is_blocked) FROM STDIN WITH (FORMAT csv, DELIMITER ',', NULL '')`
+        `COPY simples (id, basic_doc, choose_simple_module, date_simple_module_start, date_exclude_simple_module_start, choose_mei, date_mei_start, date_exclude_mei_start, created_at, updated_at, is_deleted, is_active, is_blocked) FROM STDIN WITH (FORMAT csv, DELIMITER ',', NULL '')`
       )
       const pgStream = client.query(copyQuery)
 
@@ -127,61 +109,33 @@ export class SimpleImportProcessor {
       await pipeline(transformedStream, pgStream)
 
       const copyRowCount = pgStream.rowCount ?? 0
-      this.logger.log(`COPY completed: ${copyRowCount} rows to temp table`)
+      this.logger.log(`COPY completed: ${copyRowCount} rows inserted`)
 
-      // Verify temp table has data
-      const tempCountResult = await client.query(
-        `SELECT COUNT(*) as count FROM ${tempTableName}`
+      // 3. Recreate unique constraint
+      this.logger.log('Recreating unique constraint...')
+      await client.query(
+        'ALTER TABLE simples ADD CONSTRAINT simples_basic_doc_unique UNIQUE (basic_doc)'
       )
-      const tempCount = Number.parseInt(tempCountResult.rows[0].count, 10)
-      this.logger.log(`Temp table verification: ${tempCount} rows`)
-
-      // 3. Upsert from temp table to main table using ON CONFLICT
-      this.logger.log('Starting upsert to main table...')
-      const upsertResult = await client.query(`
-        INSERT INTO simples (id, basic_doc, choose_simple_module, date_simple_module_start, date_exclude_simple_module_start, choose_mei, date_mei_start, date_exclude_mei_start, created_at, updated_at, is_deleted, is_active, is_blocked)
-        SELECT id, basic_doc, choose_simple_module, date_simple_module_start, date_exclude_simple_module_start, choose_mei, date_mei_start, date_exclude_mei_start, created_at, updated_at, is_deleted, is_active, is_blocked
-        FROM ${tempTableName}
-        ON CONFLICT (basic_doc) DO UPDATE SET
-          choose_simple_module = EXCLUDED.choose_simple_module,
-          date_simple_module_start = EXCLUDED.date_simple_module_start,
-          date_exclude_simple_module_start = EXCLUDED.date_exclude_simple_module_start,
-          choose_mei = EXCLUDED.choose_mei,
-          date_mei_start = EXCLUDED.date_mei_start,
-          date_exclude_mei_start = EXCLUDED.date_exclude_mei_start,
-          updated_at = EXCLUDED.updated_at
-      `)
-
-      const upsertRowCount = upsertResult.rowCount ?? 0
-      this.logger.log(`Upsert completed: ${upsertRowCount} rows affected`)
-
-      // 4. Drop temp table
-      await client.query(`DROP TABLE IF EXISTS ${tempTableName}`)
-      this.logger.log(`Temporary table ${tempTableName} dropped`)
-
-      // Commit transaction
-      await client.query('COMMIT')
-      this.logger.log('Transaction committed successfully')
+      this.logger.log('Unique constraint recreated successfully')
 
       return {
-        totalProcessed: tempCount,
-        totalImported: upsertRowCount,
+        totalProcessed: copyRowCount,
+        totalImported: copyRowCount,
         totalErrors: 0,
         errors: []
       }
     } catch (error) {
-      // Rollback on error
+      // Try to recreate constraint if it was dropped
       try {
-        await client.query('ROLLBACK')
-        this.logger.warn('Transaction rolled back due to error')
+        await client.query(`
+          DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'simples_basic_doc_unique') THEN
+              ALTER TABLE simples ADD CONSTRAINT simples_basic_doc_unique UNIQUE (basic_doc);
+            END IF;
+          END $$;
+        `)
       } catch {
-        // Ignore rollback errors
-      }
-      // Clean up temp table on error
-      try {
-        await client.query(`DROP TABLE IF EXISTS ${tempTableName}`)
-      } catch {
-        // Ignore cleanup errors
+        this.logger.warn('Failed to recreate constraint after error')
       }
       throw error
     } finally {

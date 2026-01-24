@@ -83,38 +83,12 @@ export class PartnerImportProcessor {
     job: Job<PartnerImportJobData>
   ): Promise<Omit<PartnerImportJobResult, 'durationMs'>> {
     const client = await this.pool.connect()
-    const tempTableName = `partners_temp_${Date.now()}`
 
     try {
-      // Start transaction
-      await client.query('BEGIN')
-
-      this.logger.log(`Creating temporary table: ${tempTableName}`)
-      await client.query(`
-        CREATE TEMP TABLE ${tempTableName} (
-          id UUID NOT NULL,
-          basic_cnpj TEXT NOT NULL,
-          partner_identifier TEXT,
-          partner_name TEXT,
-          partner_doc TEXT,
-          partner_qualification TEXT,
-          entry_date TIMESTAMP,
-          country_code TEXT,
-          legal_representative_doc TEXT,
-          legal_representative_name TEXT,
-          legal_representative_qualification TEXT,
-          age_range TEXT,
-          created_at TIMESTAMP NOT NULL,
-          updated_at TIMESTAMP NOT NULL,
-          is_deleted BOOLEAN NOT NULL DEFAULT false,
-          is_active BOOLEAN NOT NULL DEFAULT true,
-          is_blocked BOOLEAN NOT NULL DEFAULT false
-        )
-      `)
-
-      this.logger.log('Starting COPY to temporary table...')
+      // COPY data directly into main table (very fast)
+      this.logger.log('Starting COPY directly to partners table...')
       const copyQuery = copyFrom(
-        `COPY ${tempTableName} (id, basic_cnpj, partner_identifier, partner_name, partner_doc, partner_qualification, entry_date, country_code, legal_representative_doc, legal_representative_name, legal_representative_qualification, age_range, created_at, updated_at, is_deleted, is_active, is_blocked) FROM STDIN WITH (FORMAT csv, DELIMITER ',', NULL '')`
+        `COPY partners (id, basic_cnpj, partner_identifier, partner_name, partner_doc, partner_qualification, entry_date, country_code, legal_representative_doc, legal_representative_name, legal_representative_qualification, age_range, created_at, updated_at, is_deleted, is_active, is_blocked) FROM STDIN WITH (FORMAT csv, DELIMITER ',', NULL '')`
       )
       const pgStream = client.query(copyQuery)
 
@@ -128,53 +102,14 @@ export class PartnerImportProcessor {
       await pipeline(transformedStream, pgStream)
 
       const copyRowCount = pgStream.rowCount ?? 0
-      this.logger.log(`COPY completed: ${copyRowCount} rows to temp table`)
-
-      // Verify temp table has data
-      const tempCountResult = await client.query(
-        `SELECT COUNT(*) as count FROM ${tempTableName}`
-      )
-      const tempCount = Number.parseInt(tempCountResult.rows[0].count, 10)
-      this.logger.log(`Temp table verification: ${tempCount} rows`)
-
-      this.logger.log('Starting insert to main table...')
-      const insertResult = await client.query(`
-        INSERT INTO partners (id, basic_cnpj, partner_identifier, partner_name, partner_doc, partner_qualification, entry_date, country_code, legal_representative_doc, legal_representative_name, legal_representative_qualification, age_range, created_at, updated_at, is_deleted, is_active, is_blocked)
-        SELECT id, basic_cnpj, partner_identifier, partner_name, partner_doc, partner_qualification, entry_date, country_code, legal_representative_doc, legal_representative_name, legal_representative_qualification, age_range, created_at, updated_at, is_deleted, is_active, is_blocked
-        FROM ${tempTableName}
-      `)
-
-      const insertRowCount = insertResult.rowCount ?? 0
-      this.logger.log(`Insert completed: ${insertRowCount} rows affected`)
-
-      await client.query(`DROP TABLE IF EXISTS ${tempTableName}`)
-      this.logger.log(`Temporary table ${tempTableName} dropped`)
-
-      // Commit transaction
-      await client.query('COMMIT')
-      this.logger.log('Transaction committed successfully')
+      this.logger.log(`COPY completed: ${copyRowCount} rows inserted`)
 
       return {
-        totalProcessed: tempCount,
-        totalImported: insertRowCount,
+        totalProcessed: copyRowCount,
+        totalImported: copyRowCount,
         totalErrors: 0,
         errors: []
       }
-    } catch (error) {
-      // Rollback on error
-      try {
-        await client.query('ROLLBACK')
-        this.logger.warn('Transaction rolled back due to error')
-      } catch {
-        // Ignore rollback errors
-      }
-      // Clean up temp table on error
-      try {
-        await client.query(`DROP TABLE IF EXISTS ${tempTableName}`)
-      } catch {
-        // Ignore cleanup errors
-      }
-      throw error
     } finally {
       client.release()
     }
