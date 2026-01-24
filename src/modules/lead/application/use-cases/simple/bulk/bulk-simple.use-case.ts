@@ -1,6 +1,6 @@
 import { Inject, Injectable, HttpStatus } from '@nestjs/common'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
-import { SimpleEntity } from '@modules/lead/domain/entities/contracts/simple.entity'
+import { SimpleEntity } from '@modules/lead/domain/entities/simple.entity'
 import { SimpleMapper } from '@modules/lead/application/mappers/simple.mapper'
 import { ModelOutput } from '@modules/core/application/use-cases/common'
 import { BulkSimpleInput, BulkSimpleOutput } from './dtos'
