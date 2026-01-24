@@ -1,5 +1,6 @@
 import { LeadModel, NewLeadModel } from '@modules/lead/domain/models'
 import { SimpleModel } from '@modules/lead/domain/models/simple.model'
+import { PartnerModel } from '@modules/lead/domain/models/partner.model'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
@@ -7,6 +8,7 @@ import { randomUUID } from 'crypto'
 export class LeadInMemoryRepository implements ILeadRepository {
   private items: LeadModel[] = []
   private readonly simpleItems: SimpleModel[] = []
+  private readonly partnerItems: PartnerModel[] = []
 
   async save(entity: NewLeadModel): Promise<void> {
     const now = new Date()
@@ -180,6 +182,29 @@ export class LeadInMemoryRepository implements ILeadRepository {
     return count
   }
 
+  // Partner module methods
+  async findPartnersByBasicCnpj(basicCnpj: string): Promise<PartnerModel[]> {
+    const normalizedCnpj = basicCnpj.replaceAll(/\D/g, '')
+    return this.partnerItems.filter(item => item.basic_cnpj === normalizedCnpj)
+  }
+
+  async findPartnerByDoc(doc: string): Promise<PartnerModel | null> {
+    const normalizedDoc = doc.replaceAll(/\D/g, '')
+    return (
+      this.partnerItems.find(item => item.partner_doc === normalizedDoc) ?? null
+    )
+  }
+
+  async createPartner(partner: PartnerModel): Promise<PartnerModel> {
+    this.partnerItems.push(partner)
+    return partner
+  }
+
+  async bulkPartnerInsert(partners: PartnerModel[]): Promise<number> {
+    this.partnerItems.push(...partners)
+    return partners.length
+  }
+
   // Métodos auxiliares para testes
   clear(): void {
     this.items = []
@@ -195,5 +220,13 @@ export class LeadInMemoryRepository implements ILeadRepository {
 
   getSimpleItems(): SimpleModel[] {
     return [...this.simpleItems]
+  }
+
+  clearPartners(): void {
+    this.partnerItems.length = 0
+  }
+
+  getPartnerItems(): PartnerModel[] {
+    return [...this.partnerItems]
   }
 }

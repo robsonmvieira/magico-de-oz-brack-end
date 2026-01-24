@@ -16,16 +16,16 @@ import { Pool } from 'pg'
 import { from as copyFrom } from 'pg-copy-streams'
 import { PG_POOL } from '@modules/database'
 
-export const SIMPLE_IMPORT_QUEUE = 'simple-import'
+export const PARTNER_IMPORT_QUEUE = 'partner-import'
 
-export interface SimpleImportJobData {
+export interface PartnerImportJobData {
   filePath: string
   batchSize: number
   delimiter: string
   skipHeader: boolean
 }
 
-export interface SimpleImportJobResult {
+export interface PartnerImportJobResult {
   totalProcessed: number
   totalImported: number
   totalErrors: number
@@ -33,16 +33,16 @@ export interface SimpleImportJobResult {
   durationMs: number
 }
 
-@Processor(SIMPLE_IMPORT_QUEUE)
-export class SimpleImportProcessor {
-  private readonly logger = new Logger(SimpleImportProcessor.name)
+@Processor(PARTNER_IMPORT_QUEUE)
+export class PartnerImportProcessor {
+  private readonly logger = new Logger(PartnerImportProcessor.name)
 
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
   @Process()
   async handleImport(
-    job: Job<SimpleImportJobData>
-  ): Promise<SimpleImportJobResult> {
+    job: Job<PartnerImportJobData>
+  ): Promise<PartnerImportJobResult> {
     const startTime = Date.now()
     const { filePath, delimiter, skipHeader } = job.data
 
@@ -67,7 +67,6 @@ export class SimpleImportProcessor {
         durationMs
       }
     } finally {
-      // Always clean up temp file, regardless of success or failure
       try {
         await unlink(filePath)
         this.logger.log(`Temp file deleted: ${filePath}`)
@@ -81,27 +80,30 @@ export class SimpleImportProcessor {
     filePath: string,
     delimiter: string,
     skipHeader: boolean,
-    job: Job<SimpleImportJobData>
-  ): Promise<Omit<SimpleImportJobResult, 'durationMs'>> {
+    job: Job<PartnerImportJobData>
+  ): Promise<Omit<PartnerImportJobResult, 'durationMs'>> {
     const client = await this.pool.connect()
-    const tempTableName = `simples_temp_${Date.now()}`
+    const tempTableName = `partners_temp_${Date.now()}`
 
     try {
       // Start transaction
       await client.query('BEGIN')
 
-      // 1. Create temporary table with same structure
       this.logger.log(`Creating temporary table: ${tempTableName}`)
       await client.query(`
         CREATE TEMP TABLE ${tempTableName} (
           id UUID NOT NULL,
-          basic_doc TEXT NOT NULL,
-          choose_simple_module TEXT,
-          date_simple_module_start TIMESTAMP,
-          date_exclude_simple_module_start TIMESTAMP,
-          choose_mei TEXT,
-          date_mei_start TIMESTAMP,
-          date_exclude_mei_start TIMESTAMP,
+          basic_cnpj TEXT NOT NULL,
+          partner_identifier TEXT,
+          partner_name TEXT,
+          partner_doc TEXT,
+          partner_qualification TEXT,
+          entry_date TIMESTAMP,
+          country_code TEXT,
+          legal_representative_doc TEXT,
+          legal_representative_name TEXT,
+          legal_representative_qualification TEXT,
+          age_range TEXT,
           created_at TIMESTAMP NOT NULL,
           updated_at TIMESTAMP NOT NULL,
           is_deleted BOOLEAN NOT NULL DEFAULT false,
@@ -110,10 +112,9 @@ export class SimpleImportProcessor {
         )
       `)
 
-      // 2. COPY data into temp table (very fast, no constraints)
       this.logger.log('Starting COPY to temporary table...')
       const copyQuery = copyFrom(
-        `COPY ${tempTableName} (id, basic_doc, choose_simple_module, date_simple_module_start, date_exclude_simple_module_start, choose_mei, date_mei_start, date_exclude_mei_start, created_at, updated_at, is_deleted, is_active, is_blocked) FROM STDIN WITH (FORMAT csv, DELIMITER ',', NULL '')`
+        `COPY ${tempTableName} (id, basic_cnpj, partner_identifier, partner_name, partner_doc, partner_qualification, entry_date, country_code, legal_representative_doc, legal_representative_name, legal_representative_qualification, age_range, created_at, updated_at, is_deleted, is_active, is_blocked) FROM STDIN WITH (FORMAT csv, DELIMITER ',', NULL '')`
       )
       const pgStream = client.query(copyQuery)
 
@@ -136,26 +137,16 @@ export class SimpleImportProcessor {
       const tempCount = Number.parseInt(tempCountResult.rows[0].count, 10)
       this.logger.log(`Temp table verification: ${tempCount} rows`)
 
-      // 3. Upsert from temp table to main table using ON CONFLICT
-      this.logger.log('Starting upsert to main table...')
-      const upsertResult = await client.query(`
-        INSERT INTO simples (id, basic_doc, choose_simple_module, date_simple_module_start, date_exclude_simple_module_start, choose_mei, date_mei_start, date_exclude_mei_start, created_at, updated_at, is_deleted, is_active, is_blocked)
-        SELECT id, basic_doc, choose_simple_module, date_simple_module_start, date_exclude_simple_module_start, choose_mei, date_mei_start, date_exclude_mei_start, created_at, updated_at, is_deleted, is_active, is_blocked
+      this.logger.log('Starting insert to main table...')
+      const insertResult = await client.query(`
+        INSERT INTO partners (id, basic_cnpj, partner_identifier, partner_name, partner_doc, partner_qualification, entry_date, country_code, legal_representative_doc, legal_representative_name, legal_representative_qualification, age_range, created_at, updated_at, is_deleted, is_active, is_blocked)
+        SELECT id, basic_cnpj, partner_identifier, partner_name, partner_doc, partner_qualification, entry_date, country_code, legal_representative_doc, legal_representative_name, legal_representative_qualification, age_range, created_at, updated_at, is_deleted, is_active, is_blocked
         FROM ${tempTableName}
-        ON CONFLICT (basic_doc) DO UPDATE SET
-          choose_simple_module = EXCLUDED.choose_simple_module,
-          date_simple_module_start = EXCLUDED.date_simple_module_start,
-          date_exclude_simple_module_start = EXCLUDED.date_exclude_simple_module_start,
-          choose_mei = EXCLUDED.choose_mei,
-          date_mei_start = EXCLUDED.date_mei_start,
-          date_exclude_mei_start = EXCLUDED.date_exclude_mei_start,
-          updated_at = EXCLUDED.updated_at
       `)
 
-      const upsertRowCount = upsertResult.rowCount ?? 0
-      this.logger.log(`Upsert completed: ${upsertRowCount} rows affected`)
+      const insertRowCount = insertResult.rowCount ?? 0
+      this.logger.log(`Insert completed: ${insertRowCount} rows affected`)
 
-      // 4. Drop temp table
       await client.query(`DROP TABLE IF EXISTS ${tempTableName}`)
       this.logger.log(`Temporary table ${tempTableName} dropped`)
 
@@ -165,7 +156,7 @@ export class SimpleImportProcessor {
 
       return {
         totalProcessed: tempCount,
-        totalImported: upsertRowCount,
+        totalImported: insertRowCount,
         totalErrors: 0,
         errors: []
       }
@@ -193,7 +184,7 @@ export class SimpleImportProcessor {
     filePath: string,
     delimiter: string,
     skipHeader: boolean,
-    job: Job<SimpleImportJobData>
+    job: Job<PartnerImportJobData>
   ): Readable {
     let isFirstLine = true
     let processedCount = 0
@@ -247,40 +238,43 @@ export class SimpleImportProcessor {
       return null
     }
 
-    // CSV format: CNPJ;OPCAO_SIMPLES;DATA_OPCAO_SIMPLES;DATA_EXCLUSAO_SIMPLES;OPCAO_MEI;DATA_OPCAO_MEI;DATA_EXCLUSAO_MEI
+    // CSV format: CNPJ_BASICO;IDENTIFICADOR_SOCIO;NOME_SOCIO;CNPJ_CPF_SOCIO;QUALIFICACAO_SOCIO;DATA_ENTRADA;PAIS;REPRESENTANTE_LEGAL;NOME_REPRESENTANTE;QUALIFICACAO_REPRESENTANTE;FAIXA_ETARIA
     const [
-      basicDoc,
-      chooseSimpleModule,
-      dateSimpleModuleStartStr,
-      dateExcludeSimpleModuleStartStr,
-      chooseMEI,
-      dateMEIStartStr,
-      dateExcludeMEIStartStr
+      basicCnpj,
+      partnerIdentifier,
+      partnerName,
+      partnerDoc,
+      partnerQualification,
+      entryDateStr,
+      countryCode,
+      legalRepresentativeDoc,
+      legalRepresentativeName,
+      legalRepresentativeQualification,
+      ageRange
     ] = parts
 
-    if (!basicDoc) {
+    if (!basicCnpj) {
       return null
     }
 
     const id = randomUUID()
-    const cleanBasicDoc = basicDoc.replace(/\D/g, '')
-    const chooseSimple = this.parseOptionStatus(chooseSimpleModule)
-    const dateSimpleStart = this.formatDate(dateSimpleModuleStartStr)
-    const dateSimpleExclude = this.formatDate(dateExcludeSimpleModuleStartStr)
-    const chooseMEIValue = this.parseOptionStatus(chooseMEI)
-    const dateMEIStart = this.formatDate(dateMEIStartStr)
-    const dateMEIExclude = this.formatDate(dateExcludeMEIStartStr)
+    const cleanBasicCnpj = basicCnpj.replace(/\D/g, '')
+    const entryDate = this.formatDate(entryDateStr)
     const now = new Date().toISOString()
 
     return [
       id,
-      cleanBasicDoc,
-      chooseSimple,
-      dateSimpleStart,
-      dateSimpleExclude,
-      chooseMEIValue,
-      dateMEIStart,
-      dateMEIExclude,
+      cleanBasicCnpj,
+      partnerIdentifier || '',
+      partnerName || '',
+      partnerDoc || '',
+      partnerQualification || '',
+      entryDate,
+      countryCode || '',
+      legalRepresentativeDoc || '',
+      legalRepresentativeName || '',
+      legalRepresentativeQualification || '',
+      ageRange || '',
       now,
       now,
       'false',
@@ -297,7 +291,6 @@ export class SimpleImportProcessor {
       const month = dateStr.substring(4, 6)
       const day = dateStr.substring(6, 8)
 
-      // Invalid dates from Receita Federal (e.g., 00000000)
       if (year === '0000' || month === '00' || day === '00') {
         return ''
       }
@@ -308,23 +301,15 @@ export class SimpleImportProcessor {
     return dateStr
   }
 
-  private parseOptionStatus(value: string | undefined): string {
-    if (!value) return 'O'
-    const upper = value.toUpperCase()
-    if (['N', 'S', 'O'].includes(upper)) return upper
-    return 'O'
-  }
-
   @OnQueueCompleted()
-  onCompleted(job: Job<SimpleImportJobData>, result: SimpleImportJobResult) {
+  onCompleted(job: Job<PartnerImportJobData>, result: PartnerImportJobResult) {
     this.logger.log(
       `Job ${job.id} completed successfully: ${result.totalImported} records imported`
     )
   }
 
   @OnQueueFailed()
-  onFailed(job: Job<SimpleImportJobData>, error: Error) {
+  onFailed(job: Job<PartnerImportJobData>, error: Error) {
     this.logger.error(`Job ${job.id} failed: ${error.message}`, error.stack)
-    // File cleanup is handled in handleImport's finally block
   }
 }

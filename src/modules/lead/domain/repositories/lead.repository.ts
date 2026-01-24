@@ -2,6 +2,7 @@ import { IRepository } from '@modules/core/domain/repositories'
 import { LeadModel, NewLeadModel } from '../models'
 import { LeadStage, LeadTemperature } from '../enums'
 import { SimpleModel } from '../models/simple.model'
+import { PartnerModel } from '../models/partner.model'
 
 export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   // Busca por campos únicos
@@ -37,4 +38,10 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   bulkSimple(simples: SimpleModel[]): Promise<SimpleModel[]>
   bulkSimpleInsert(simples: SimpleModel[]): Promise<number>
   copySimpleFromStream(stream: NodeJS.ReadableStream): Promise<number>
+
+  // partner module
+  findPartnersByBasicCnpj(basicCnpj: string): Promise<PartnerModel[]>
+  findPartnerByDoc(doc: string): Promise<PartnerModel | null>
+  createPartner(partner: PartnerModel): Promise<PartnerModel>
+  bulkPartnerInsert(partners: PartnerModel[]): Promise<number>
 }

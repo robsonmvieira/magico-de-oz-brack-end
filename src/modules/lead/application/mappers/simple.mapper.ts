@@ -1,4 +1,4 @@
-import { SimpleEntity } from '@modules/lead/domain/entities/contracts/simple.entity'
+import { SimpleEntity } from '@modules/lead/domain/entities/simple.entity'
 import {
   SimpleModel,
   NewSimpleModel

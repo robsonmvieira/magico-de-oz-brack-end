@@ -1,4 +1,4 @@
-import { SimpleImportProcessor } from '@modules/lead/infra/queues/simple-import.processor'
+import { PartnerImportProcessor } from '@modules/lead/infra/queues/partner-import.processor'
 import { Job } from 'bull'
 import { Pool, QueryResult } from 'pg'
 import { writeFile, unlink, mkdir } from 'node:fs/promises'
@@ -6,8 +6,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
-describe('SimpleImportProcessor', () => {
-  let processor: SimpleImportProcessor
+describe('PartnerImportProcessor', () => {
+  let processor: PartnerImportProcessor
   let mockPool: jest.Mocked<Pool>
   let mockClient: {
     query: jest.Mock
@@ -34,7 +34,7 @@ describe('SimpleImportProcessor', () => {
 
   const createCsvContent = (lines: string[], includeHeader = true): string => {
     const header =
-      'CNPJ;OPCAO_SIMPLES;DATA_OPCAO_SIMPLES;DATA_EXCLUSAO_SIMPLES;OPCAO_MEI;DATA_OPCAO_MEI;DATA_EXCLUSAO_MEI'
+      'CNPJ_BASICO;IDENTIFICADOR_SOCIO;NOME_SOCIO;CNPJ_CPF_SOCIO;QUALIFICACAO_SOCIO;DATA_ENTRADA;PAIS;REPRESENTANTE_LEGAL;NOME_REPRESENTANTE;QUALIFICACAO_REPRESENTANTE;FAIXA_ETARIA'
     if (includeHeader) {
       return [header, ...lines].join('\n')
     }
@@ -42,7 +42,7 @@ describe('SimpleImportProcessor', () => {
   }
 
   beforeAll(async () => {
-    tempDir = join(tmpdir(), `simple-import-test-${randomUUID()}`)
+    tempDir = join(tmpdir(), `partner-import-test-${randomUUID()}`)
     await mkdir(tempDir, { recursive: true })
   })
 
@@ -69,7 +69,7 @@ describe('SimpleImportProcessor', () => {
       connect: jest.fn().mockResolvedValue(mockClient)
     } as any
 
-    processor = new SimpleImportProcessor(mockPool)
+    processor = new PartnerImportProcessor(mockPool)
   })
 
   afterEach(async () => {
@@ -82,7 +82,8 @@ describe('SimpleImportProcessor', () => {
 
   describe('transformLine', () => {
     it('should correctly parse CSV line with all fields', () => {
-      const line = '12345678000199;S;20190509;20220401;N;20200101;20210601'
+      const line =
+        '17254671;1;AFYA PARTICIPACOES S.A.;23399329000172;22;20210813;;***381497**;ANIBAL JOSE GRIFO DE SOUSA;05;0'
       const result = (processor as any).transformLine(line, ';')
 
       expect(result).not.toBeNull()
@@ -92,55 +93,60 @@ describe('SimpleImportProcessor', () => {
       expect(parts[0]).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
       )
-      // basic_doc (cleaned)
-      expect(parts[1]).toBe('12345678000199')
-      // choose_simple_module
-      expect(parts[2]).toBe('S')
-      // date_simple_module_start
-      expect(parts[3]).toBe('2019-05-09')
-      // date_exclude_simple_module_start
-      expect(parts[4]).toBe('2022-04-01')
-      // choose_mei
-      expect(parts[5]).toBe('N')
-      // date_mei_start
-      expect(parts[6]).toBe('2020-01-01')
-      // date_exclude_mei_start
-      expect(parts[7]).toBe('2021-06-01')
+      // basic_cnpj (cleaned)
+      expect(parts[1]).toBe('17254671')
+      // partner_identifier
+      expect(parts[2]).toBe('1')
+      // partner_name
+      expect(parts[3]).toBe('AFYA PARTICIPACOES S.A.')
+      // partner_doc
+      expect(parts[4]).toBe('23399329000172')
+      // partner_qualification
+      expect(parts[5]).toBe('22')
+      // entry_date
+      expect(parts[6]).toBe('2021-08-13')
+      // country_code
+      expect(parts[7]).toBe('')
+      // legal_representative_doc
+      expect(parts[8]).toBe('***381497**')
+      // legal_representative_name
+      expect(parts[9]).toBe('ANIBAL JOSE GRIFO DE SOUSA')
+      // legal_representative_qualification
+      expect(parts[10]).toBe('05')
+      // age_range
+      expect(parts[11]).toBe('0')
     })
 
     it('should handle CNPJ with special characters', () => {
-      const line = '12.345.678/0001-99;S;20190509;;;N;;'
+      const line = '17.254.671;1;EMPRESA TESTE;12345678901;22;20210813;;;;;;'
       const result = (processor as any).transformLine(line, ';')
 
       expect(result).not.toBeNull()
       const parts = result.split(',')
-      expect(parts[1]).toBe('12345678000199')
+      expect(parts[1]).toBe('17254671')
     })
 
-    it('should handle empty date fields', () => {
-      // Format: CNPJ;OPCAO_SIMPLES;DATA_OPCAO_SIMPLES;DATA_EXCLUSAO_SIMPLES;OPCAO_MEI;DATA_OPCAO_MEI;DATA_EXCLUSAO_MEI
-      const line = '12345678000199;S;;;N;;'
+    it('should handle empty fields', () => {
+      const line = '12345678;;NOME DO SOCIO;;;;;;;'
       const result = (processor as any).transformLine(line, ';')
 
       expect(result).not.toBeNull()
       const parts = result.split(',')
-      expect(parts[2]).toBe('S') // choose_simple_module
-      expect(parts[3]).toBe('') // date_simple_module_start
-      expect(parts[4]).toBe('') // date_exclude_simple_module_start
-      expect(parts[5]).toBe('N') // choose_mei
-      expect(parts[6]).toBe('') // date_mei_start
-      expect(parts[7]).toBe('') // date_exclude_mei_start
+      expect(parts[1]).toBe('12345678') // basic_cnpj
+      expect(parts[2]).toBe('') // partner_identifier
+      expect(parts[3]).toBe('NOME DO SOCIO') // partner_name
+      expect(parts[4]).toBe('') // partner_doc
     })
 
     it('should return null for lines with less than 4 columns', () => {
-      const line = '12345678000199;S;20190509'
+      const line = '12345678;1;NOME'
       const result = (processor as any).transformLine(line, ';')
 
       expect(result).toBeNull()
     })
 
-    it('should return null for lines without basic_doc', () => {
-      const line = ';S;20190509;20220401;N;20200101;20210601'
+    it('should return null for lines without basic_cnpj', () => {
+      const line = ';1;EMPRESA TESTE;12345678901;22;20210813;;;;;;'
       const result = (processor as any).transformLine(line, ';')
 
       expect(result).toBeNull()
@@ -148,20 +154,31 @@ describe('SimpleImportProcessor', () => {
 
     it('should handle quoted CSV fields', () => {
       const line =
-        '"12345678000199";"S";"20190509";"20220401";"N";"20200101";"20210601"'
+        '"17254671";"1";"AFYA PARTICIPACOES S.A.";"23399329000172";"22";"20210813";"";"";"";"";"0"'
       const result = (processor as any).transformLine(line, ';')
 
       expect(result).not.toBeNull()
       const parts = result.split(',')
-      expect(parts[1]).toBe('12345678000199')
-      expect(parts[2]).toBe('S')
+      expect(parts[1]).toBe('17254671')
+      expect(parts[3]).toBe('AFYA PARTICIPACOES S.A.')
+    })
+
+    it('should handle partner with foreign country code', () => {
+      const line =
+        '12345678;3;SOCIO ESTRANGEIRO;12345678901;22;20210813;105;;;;5'
+      const result = (processor as any).transformLine(line, ';')
+
+      expect(result).not.toBeNull()
+      const parts = result.split(',')
+      expect(parts[2]).toBe('3') // partner_identifier (estrangeiro)
+      expect(parts[7]).toBe('105') // country_code
     })
   })
 
   describe('formatDate', () => {
     it('should format YYYYMMDD to YYYY-MM-DD', () => {
-      const result = (processor as any).formatDate('20190509')
-      expect(result).toBe('2019-05-09')
+      const result = (processor as any).formatDate('20210813')
+      expect(result).toBe('2021-08-13')
     })
 
     it('should return empty string for empty input', () => {
@@ -170,49 +187,22 @@ describe('SimpleImportProcessor', () => {
     })
 
     it('should return original value for non-8-digit dates', () => {
-      expect((processor as any).formatDate('2019-05-09')).toBe('2019-05-09')
+      expect((processor as any).formatDate('2021-08-13')).toBe('2021-08-13')
       expect((processor as any).formatDate('invalid')).toBe('invalid')
     })
 
     it('should return empty string for invalid dates like 00000000', () => {
       expect((processor as any).formatDate('00000000')).toBe('')
       expect((processor as any).formatDate('00001231')).toBe('')
-      expect((processor as any).formatDate('20190000')).toBe('')
-      expect((processor as any).formatDate('20191200')).toBe('')
-    })
-  })
-
-  describe('parseOptionStatus', () => {
-    it('should return S for "S" or "s"', () => {
-      expect((processor as any).parseOptionStatus('S')).toBe('S')
-      expect((processor as any).parseOptionStatus('s')).toBe('S')
-    })
-
-    it('should return N for "N" or "n"', () => {
-      expect((processor as any).parseOptionStatus('N')).toBe('N')
-      expect((processor as any).parseOptionStatus('n')).toBe('N')
-    })
-
-    it('should return O for empty or undefined', () => {
-      expect((processor as any).parseOptionStatus('')).toBe('O')
-      expect((processor as any).parseOptionStatus(undefined)).toBe('O')
-    })
-
-    it('should return O for invalid values', () => {
-      expect((processor as any).parseOptionStatus('X')).toBe('O')
-      expect((processor as any).parseOptionStatus('invalid')).toBe('O')
-    })
-
-    it('should return O for "O" or "o"', () => {
-      expect((processor as any).parseOptionStatus('O')).toBe('O')
-      expect((processor as any).parseOptionStatus('o')).toBe('O')
+      expect((processor as any).formatDate('20210000')).toBe('')
+      expect((processor as any).formatDate('20211200')).toBe('')
     })
   })
 
   describe('handleImport', () => {
     it('should delete temp file after successful import', async () => {
       const csvContent = createCsvContent([
-        '12345678000199;S;20190509;20220401;N;20200101;20210601'
+        '17254671;1;AFYA PARTICIPACOES S.A.;23399329000172;22;20210813;;***381497**;ANIBAL JOSE GRIFO DE SOUSA;05;0'
       ])
       await writeFile(testFilePath, csvContent, 'utf-8')
 
@@ -236,7 +226,7 @@ describe('SimpleImportProcessor', () => {
 
     it('should delete temp file after failed import', async () => {
       const csvContent = createCsvContent([
-        '12345678000199;S;20190509;20220401;N;20200101;20210601'
+        '17254671;1;AFYA PARTICIPACOES S.A.;23399329000172;22;20210813;;***381497**;ANIBAL JOSE GRIFO DE SOUSA;05;0'
       ])
       await writeFile(testFilePath, csvContent, 'utf-8')
 
@@ -259,7 +249,7 @@ describe('SimpleImportProcessor', () => {
 
     it('should return correct result structure on success', async () => {
       const csvContent = createCsvContent([
-        '12345678000199;S;20190509;20220401;N;20200101;20210601'
+        '17254671;1;AFYA PARTICIPACOES S.A.;23399329000172;22;20210813;;***381497**;ANIBAL JOSE GRIFO DE SOUSA;05;0'
       ])
       await writeFile(testFilePath, csvContent, 'utf-8')
 
@@ -286,47 +276,56 @@ describe('SimpleImportProcessor', () => {
   })
 
   describe('CSV column order mapping', () => {
-    it('should correctly map Receita Federal CSV format', () => {
-      // Format: CNPJ;OPCAO_SIMPLES;DATA_OPCAO_SIMPLES;DATA_EXCLUSAO_SIMPLES;OPCAO_MEI;DATA_OPCAO_MEI;DATA_EXCLUSAO_MEI
-      const line = '33581424;N;20190509;20220401;N;20190509;20220401'
+    it('should correctly map Receita Federal CSV format for partners', () => {
+      // Format: CNPJ_BASICO;IDENTIFICADOR_SOCIO;NOME_SOCIO;CNPJ_CPF_SOCIO;QUALIFICACAO_SOCIO;DATA_ENTRADA;PAIS;REPRESENTANTE_LEGAL;NOME_REPRESENTANTE;QUALIFICACAO_REPRESENTANTE;FAIXA_ETARIA
+      const line =
+        '17254671;1;AFYA PARTICIPACOES S.A.;23399329000172;22;20210813;;***381497**;ANIBAL JOSE GRIFO DE SOUSA;05;0'
       const result = (processor as any).transformLine(line, ';')
 
       expect(result).not.toBeNull()
       const parts = result.split(',')
 
       // Verify correct mapping
-      expect(parts[1]).toBe('33581424') // CNPJ -> basic_doc
-      expect(parts[2]).toBe('N') // OPCAO_SIMPLES -> choose_simple_module
-      expect(parts[3]).toBe('2019-05-09') // DATA_OPCAO_SIMPLES -> date_simple_module_start
-      expect(parts[4]).toBe('2022-04-01') // DATA_EXCLUSAO_SIMPLES -> date_exclude_simple_module_start
-      expect(parts[5]).toBe('N') // OPCAO_MEI -> choose_mei
-      expect(parts[6]).toBe('2019-05-09') // DATA_OPCAO_MEI -> date_mei_start
-      expect(parts[7]).toBe('2022-04-01') // DATA_EXCLUSAO_MEI -> date_exclude_mei_start
+      expect(parts[1]).toBe('17254671') // CNPJ_BASICO -> basic_cnpj
+      expect(parts[2]).toBe('1') // IDENTIFICADOR_SOCIO -> partner_identifier
+      expect(parts[3]).toBe('AFYA PARTICIPACOES S.A.') // NOME_SOCIO -> partner_name
+      expect(parts[4]).toBe('23399329000172') // CNPJ_CPF_SOCIO -> partner_doc
+      expect(parts[5]).toBe('22') // QUALIFICACAO_SOCIO -> partner_qualification
+      expect(parts[6]).toBe('2021-08-13') // DATA_ENTRADA -> entry_date
+      expect(parts[7]).toBe('') // PAIS -> country_code
+      expect(parts[8]).toBe('***381497**') // REPRESENTANTE_LEGAL -> legal_representative_doc
+      expect(parts[9]).toBe('ANIBAL JOSE GRIFO DE SOUSA') // NOME_REPRESENTANTE -> legal_representative_name
+      expect(parts[10]).toBe('05') // QUALIFICACAO_REPRESENTANTE -> legal_representative_qualification
+      expect(parts[11]).toBe('0') // FAIXA_ETARIA -> age_range
     })
 
-    it('should not confuse option status with date fields', () => {
-      // This was the original bug: "N" was being sent to a timestamp field
-      const line = '12345678;S;20200101;;N;;'
-      const result = (processor as any).transformLine(line, ';')
+    it('should handle different partner types', () => {
+      // Type 1: Pessoa Jurídica
+      const pjLine =
+        '12345678;1;EMPRESA TESTE;12345678000199;22;20210101;;;;;;0'
+      const pjResult = (processor as any).transformLine(pjLine, ';')
+      expect(pjResult).not.toBeNull()
+      expect(pjResult.split(',')[2]).toBe('1')
 
-      expect(result).not.toBeNull()
-      const parts = result.split(',')
+      // Type 2: Pessoa Física
+      const pfLine = '12345678;2;JOAO DA SILVA;12345678901;49;20210101;;;;;;5'
+      const pfResult = (processor as any).transformLine(pfLine, ';')
+      expect(pfResult).not.toBeNull()
+      expect(pfResult.split(',')[2]).toBe('2')
 
-      // choose_simple_module should be 'S', not a date
-      expect(parts[2]).toBe('S')
-      // date_simple_module_start should be a formatted date
-      expect(parts[3]).toBe('2020-01-01')
-      // date_exclude_simple_module_start should be empty, not 'N'
-      expect(parts[4]).toBe('')
-      // choose_mei should be 'N'
-      expect(parts[5]).toBe('N')
+      // Type 3: Estrangeiro
+      const estLine =
+        '12345678;3;FOREIGN PARTNER;PASSPORT123;49;20210101;105;;;;4'
+      const estResult = (processor as any).transformLine(estLine, ';')
+      expect(estResult).not.toBeNull()
+      expect(estResult.split(',')[2]).toBe('3')
     })
   })
 
   describe('createTransformStream', () => {
     it('should skip header line when skipHeader is true', async () => {
       const csvContent = createCsvContent([
-        '12345678000199;S;20190509;20220401;N;20200101;20210601'
+        '17254671;1;AFYA PARTICIPACOES S.A.;23399329000172;22;20210813;;***381497**;ANIBAL JOSE GRIFO DE SOUSA;05;0'
       ])
       await writeFile(testFilePath, csvContent, 'utf-8')
 
@@ -345,12 +344,14 @@ describe('SimpleImportProcessor', () => {
 
       // Should only have one data line (header skipped)
       expect(lines.length).toBe(1)
-      expect(lines[0]).not.toContain('CNPJ')
+      expect(lines[0]).not.toContain('CNPJ_BASICO')
     })
 
     it('should not skip header line when skipHeader is false', async () => {
       const csvContent = createCsvContent(
-        ['12345678000199;S;20190509;20220401;N;20200101;20210601'],
+        [
+          '17254671;1;AFYA PARTICIPACOES S.A.;23399329000172;22;20210813;;***381497**;ANIBAL JOSE GRIFO DE SOUSA;05;0'
+        ],
         false
       )
       await writeFile(testFilePath, csvContent, 'utf-8')
@@ -373,7 +374,7 @@ describe('SimpleImportProcessor', () => {
 
     it('should skip empty lines', async () => {
       const csvContent =
-        'HEADER\n12345678000199;S;20190509;20220401;N;20200101;20210601\n\n\n98765432000188;N;;;;S;;'
+        'HEADER\n17254671;1;AFYA PARTICIPACOES S.A.;23399329000172;22;20210813;;***381497**;ANIBAL JOSE GRIFO DE SOUSA;05;0\n\n\n12345678;2;OUTRO SOCIO;12345678901;49;20210101;;;;;;5'
       await writeFile(testFilePath, csvContent, 'utf-8')
 
       const job = createMockJob({ skipHeader: true })
@@ -398,7 +399,7 @@ describe('SimpleImportProcessor', () => {
         .fill(null)
         .map(
           (_, i) =>
-            `${String(i + 1).padStart(8, '0')}000199;S;20190509;20220401;N;20200101;20210601`
+            `${String(i + 1).padStart(8, '0')};1;EMPRESA ${i + 1};12345678901;22;20210813;;;;;;0`
         )
       const csvContent = createCsvContent(lines)
       await writeFile(testFilePath, csvContent, 'utf-8')
@@ -423,43 +424,21 @@ describe('SimpleImportProcessor', () => {
   })
 
   describe('importWithCopy', () => {
-    it('should create and drop temporary table', async () => {
-      const csvContent = createCsvContent([
-        '12345678000199;S;20190509;20220401;N;20200101;20210601'
-      ])
-      await writeFile(testFilePath, csvContent, 'utf-8')
-
+    it('should call pool.connect and release client', async () => {
       const job = createMockJob()
 
-      // Track queries
-      const queries: string[] = []
-      mockClient.query.mockImplementation((query: any) => {
-        if (typeof query === 'string') {
-          queries.push(query)
-        }
-        if (typeof query === 'object' && query.submit) {
-          const stream = {
-            rowCount: 1,
-            on: jest.fn((event: string, cb: () => void) => {
-              if (event === 'finish') setTimeout(cb, 0)
-              return stream
-            }),
-            write: jest.fn().mockReturnValue(true),
-            end: jest.fn()
-          }
-          return stream
-        }
-        return { rowCount: 1 } as QueryResult
-      })
-
-      try {
-        await (processor as any).importWithCopy(testFilePath, ';', true, job)
-      } catch {
-        // May fail due to mock limitations
+      const freshMockClient = {
+        query: jest.fn().mockRejectedValue(new Error('Test error')),
+        release: jest.fn()
       }
+      ;(mockPool.connect as jest.Mock).mockResolvedValueOnce(freshMockClient)
 
-      // Verify CREATE TEMP TABLE was called
-      expect(queries.some(q => q.includes('CREATE TEMP TABLE'))).toBe(true)
+      await expect(
+        (processor as any).importWithCopy(testFilePath, ';', true, job)
+      ).rejects.toThrow('Test error')
+
+      expect(mockPool.connect).toHaveBeenCalled()
+      expect(freshMockClient.release).toHaveBeenCalled()
     })
 
     it('should release client in finally block', async () => {
@@ -482,21 +461,24 @@ describe('SimpleImportProcessor', () => {
 
     it('should release client on error', async () => {
       const csvContent = createCsvContent([
-        '12345678000199;S;20190509;20220401;N;20200101;20210601'
+        '17254671;1;AFYA PARTICIPACOES S.A.;23399329000172;22;20210813;;***381497**;ANIBAL JOSE GRIFO DE SOUSA;05;0'
       ])
       await writeFile(testFilePath, csvContent, 'utf-8')
 
       const job = createMockJob()
 
-      // Reset mock
-      mockClient.release.mockClear()
-      mockClient.query.mockRejectedValue(new Error('Database error'))
+      // Create a fresh mock client with a query that fails
+      const freshMockClient = {
+        query: jest.fn().mockRejectedValue(new Error('Database error')),
+        release: jest.fn()
+      }
+      ;(mockPool.connect as jest.Mock).mockResolvedValueOnce(freshMockClient)
 
       await expect(
         (processor as any).importWithCopy(testFilePath, ';', true, job)
       ).rejects.toThrow('Database error')
 
-      expect(mockClient.release).toHaveBeenCalled()
+      expect(freshMockClient.release).toHaveBeenCalled()
     })
   })
 
