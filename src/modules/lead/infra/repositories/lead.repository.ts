@@ -9,6 +9,10 @@ import {
   SimpleModel,
   SimpleSchema
 } from '@modules/lead/domain/models/simple.model'
+import {
+  PartnerModel,
+  PartnerSchema
+} from '@modules/lead/domain/models/partner.model'
 import { Pool } from 'pg'
 import { pipeline } from 'node:stream/promises'
 import { from as copyFrom } from 'pg-copy-streams'
@@ -19,6 +23,7 @@ export class LeadRepository
   implements ILeadRepository
 {
   private readonly simpleTable = SimpleSchema
+  private readonly partnerTable = PartnerSchema
 
   constructor(
     @Inject(DRIZZLE) db: DrizzleDB,
@@ -205,5 +210,41 @@ export class LeadRepository
     } finally {
       client.release()
     }
+  }
+
+  // Partner methods
+  async findPartnersByBasicCnpj(basicCnpj: string): Promise<PartnerModel[]> {
+    const normalizedCnpj = basicCnpj.replaceAll(/\D/g, '')
+    const result = await this.db
+      .select()
+      .from(this.partnerTable)
+      .where(eq(this.partnerTable.basic_cnpj, normalizedCnpj))
+
+    return result
+  }
+
+  async findPartnerByDoc(doc: string): Promise<PartnerModel | null> {
+    const normalizedDoc = doc.replaceAll(/\D/g, '')
+    const result = await this.db
+      .select()
+      .from(this.partnerTable)
+      .where(eq(this.partnerTable.partner_doc, normalizedDoc))
+      .limit(1)
+
+    return result[0] || null
+  }
+
+  async createPartner(partner: PartnerModel): Promise<PartnerModel> {
+    const result = await this.db
+      .insert(this.partnerTable)
+      .values(partner)
+      .returning()
+
+    return result[0]
+  }
+
+  async bulkPartnerInsert(partners: PartnerModel[]): Promise<number> {
+    await this.db.insert(this.partnerTable).values(partners)
+    return partners.length
   }
 }
