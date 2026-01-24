@@ -48,30 +48,32 @@ export class SimpleImportProcessor {
 
     this.logger.log(`Starting COPY import job ${job.id} from file: ${filePath}`)
 
-    const result = await this.importWithCopy(
-      filePath,
-      delimiter,
-      skipHeader,
-      job
-    )
-
-    const durationMs = Date.now() - startTime
-
-    this.logger.log(
-      `Job ${job.id} completed: ${result.totalImported} imported, ${result.totalErrors} errors, ${durationMs}ms`
-    )
-
-    // Clean up temp file
     try {
-      await unlink(filePath)
-      this.logger.log(`Temp file deleted: ${filePath}`)
-    } catch {
-      this.logger.warn(`Failed to delete temp file: ${filePath}`)
-    }
+      const result = await this.importWithCopy(
+        filePath,
+        delimiter,
+        skipHeader,
+        job
+      )
 
-    return {
-      ...result,
-      durationMs
+      const durationMs = Date.now() - startTime
+
+      this.logger.log(
+        `Job ${job.id} completed: ${result.totalImported} imported, ${result.totalErrors} errors, ${durationMs}ms`
+      )
+
+      return {
+        ...result,
+        durationMs
+      }
+    } finally {
+      // Always clean up temp file, regardless of success or failure
+      try {
+        await unlink(filePath)
+        this.logger.log(`Temp file deleted: ${filePath}`)
+      } catch {
+        this.logger.warn(`Failed to delete temp file: ${filePath}`)
+      }
     }
   }
 
@@ -224,14 +226,15 @@ export class SimpleImportProcessor {
       return null
     }
 
+    // CSV format: CNPJ;OPCAO_SIMPLES;DATA_OPCAO_SIMPLES;DATA_EXCLUSAO_SIMPLES;OPCAO_MEI;DATA_OPCAO_MEI;DATA_EXCLUSAO_MEI
     const [
       basicDoc,
+      chooseSimpleModule,
       dateSimpleModuleStartStr,
       dateExcludeSimpleModuleStartStr,
-      chooseSimpleModule,
+      chooseMEI,
       dateMEIStartStr,
-      dateExcludeMEIStartStr,
-      chooseMEI
+      dateExcludeMEIStartStr
     ] = parts
 
     if (!basicDoc) {
@@ -293,14 +296,8 @@ export class SimpleImportProcessor {
   }
 
   @OnQueueFailed()
-  async onFailed(job: Job<SimpleImportJobData>, error: Error) {
+  onFailed(job: Job<SimpleImportJobData>, error: Error) {
     this.logger.error(`Job ${job.id} failed: ${error.message}`, error.stack)
-
-    try {
-      await unlink(job.data.filePath)
-      this.logger.log(`Temp file deleted after failure: ${job.data.filePath}`)
-    } catch {
-      // Ignore cleanup errors
-    }
+    // File cleanup is handled in handleImport's finally block
   }
 }
