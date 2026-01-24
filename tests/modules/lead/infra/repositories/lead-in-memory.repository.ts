@@ -162,6 +162,24 @@ export class LeadInMemoryRepository implements ILeadRepository {
     return simples
   }
 
+  async bulkSimpleInsert(simples: SimpleModel[]): Promise<number> {
+    this.simpleItems.push(...simples)
+    return simples.length
+  }
+
+  async copySimpleFromStream(stream: NodeJS.ReadableStream): Promise<number> {
+    // Mock implementation - just count lines
+    let count = 0
+    for await (const chunk of stream) {
+      const lines = chunk
+        .toString()
+        .split('\n')
+        .filter((l: string) => l.trim())
+      count += lines.length
+    }
+    return count
+  }
+
   // Métodos auxiliares para testes
   clear(): void {
     this.items = []
