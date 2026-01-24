@@ -173,6 +173,13 @@ describe('SimpleImportProcessor', () => {
       expect((processor as any).formatDate('2019-05-09')).toBe('2019-05-09')
       expect((processor as any).formatDate('invalid')).toBe('invalid')
     })
+
+    it('should return empty string for invalid dates like 00000000', () => {
+      expect((processor as any).formatDate('00000000')).toBe('')
+      expect((processor as any).formatDate('00001231')).toBe('')
+      expect((processor as any).formatDate('20190000')).toBe('')
+      expect((processor as any).formatDate('20191200')).toBe('')
+    })
   })
 
   describe('parseOptionStatus', () => {
