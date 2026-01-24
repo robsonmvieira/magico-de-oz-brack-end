@@ -1,6 +1,6 @@
 import { SimpleImportProcessor } from '@modules/lead/infra/queues/simple-import.processor'
 import { Job } from 'bull'
-import { Pool, PoolClient, QueryResult } from 'pg'
+import { Pool, QueryResult } from 'pg'
 import { writeFile, unlink, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -9,7 +9,10 @@ import { randomUUID } from 'node:crypto'
 describe('SimpleImportProcessor', () => {
   let processor: SimpleImportProcessor
   let mockPool: jest.Mocked<Pool>
-  let mockClient: jest.Mocked<PoolClient>
+  let mockClient: {
+    query: jest.Mock
+    release: jest.Mock
+  }
   let tempDir: string
   let testFilePath: string
 
