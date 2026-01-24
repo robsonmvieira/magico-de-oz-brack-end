@@ -3,7 +3,7 @@ import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const SimpleSchema = pgTable('simples', {
   ...Model,
-  basic_doc: text('basic_doc').notNull(),
+  basic_doc: text('basic_doc').notNull().unique(),
   choose_simple_module: text('choose_simple_module'),
   date_simple_module_start: timestamp('date_simple_module_start'),
   date_exclude_simple_module_start: timestamp(

@@ -35,4 +35,6 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   findSimpleByBasicDoc(basicDoc: string): Promise<SimpleModel | null>
   createSimple(simple: SimpleModel): Promise<SimpleModel>
   bulkSimple(simples: SimpleModel[]): Promise<SimpleModel[]>
+  bulkSimpleInsert(simples: SimpleModel[]): Promise<number>
+  copySimpleFromStream(stream: NodeJS.ReadableStream): Promise<number>
 }

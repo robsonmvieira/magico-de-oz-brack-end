@@ -58,7 +58,9 @@ const createMockLeadRepository = (): jest.Mocked<ILeadRepository> => ({
   findByMEI: jest.fn(),
   findSimpleByBasicDoc: jest.fn(),
   createSimple: jest.fn(),
-  bulkSimple: jest.fn()
+  bulkSimple: jest.fn(),
+  bulkSimpleInsert: jest.fn(),
+  copySimpleFromStream: jest.fn()
 })
 
 const createMockUnitOfWork = (): jest.Mocked<IUnitOfWork<any>> => ({
