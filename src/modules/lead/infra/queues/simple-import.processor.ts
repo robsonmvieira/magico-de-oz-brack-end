@@ -224,14 +224,15 @@ export class SimpleImportProcessor {
       return null
     }
 
+    // CSV format: CNPJ;OPCAO_SIMPLES;DATA_OPCAO_SIMPLES;DATA_EXCLUSAO_SIMPLES;OPCAO_MEI;DATA_OPCAO_MEI;DATA_EXCLUSAO_MEI
     const [
       basicDoc,
+      chooseSimpleModule,
       dateSimpleModuleStartStr,
       dateExcludeSimpleModuleStartStr,
-      chooseSimpleModule,
+      chooseMEI,
       dateMEIStartStr,
-      dateExcludeMEIStartStr,
-      chooseMEI
+      dateExcludeMEIStartStr
     ] = parts
 
     if (!basicDoc) {
