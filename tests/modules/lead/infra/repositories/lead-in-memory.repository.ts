@@ -6,6 +6,7 @@ import { LegalNatureModel } from '@modules/lead/domain/models/legal-nature.model
 import { CnaeModel } from '@modules/lead/domain/models/cnae.model'
 import { CompanyModel } from '@modules/lead/domain/models/company.model'
 import { EstablishmentModel } from '@modules/lead/domain/models/establishment.model'
+import { LeadSituationChangeReasonModel } from '@modules/lead/domain/models/lead-situation-change-reason.model'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
@@ -19,6 +20,8 @@ export class LeadInMemoryRepository implements ILeadRepository {
   private readonly cnaeItems: CnaeModel[] = []
   private readonly companyItems: CompanyModel[] = []
   private readonly establishmentItems: EstablishmentModel[] = []
+  private readonly leadSituationChangeReasonItems: LeadSituationChangeReasonModel[] =
+    []
 
   async save(entity: NewLeadModel): Promise<void> {
     const now = new Date()
@@ -409,5 +412,43 @@ export class LeadInMemoryRepository implements ILeadRepository {
 
   getEstablishmentItems(): EstablishmentModel[] {
     return [...this.establishmentItems]
+  }
+
+  // Lead Situation Change Reason module methods
+  async findLeadSituationChangeReasonByCode(
+    code: string
+  ): Promise<LeadSituationChangeReasonModel | null> {
+    return (
+      this.leadSituationChangeReasonItems.find(item => item.code === code) ??
+      null
+    )
+  }
+
+  async findAllLeadSituationChangeReasons(): Promise<
+    LeadSituationChangeReasonModel[]
+  > {
+    return this.leadSituationChangeReasonItems.filter(item => !item.isDeleted)
+  }
+
+  async createLeadSituationChangeReason(
+    reason: LeadSituationChangeReasonModel
+  ): Promise<LeadSituationChangeReasonModel> {
+    this.leadSituationChangeReasonItems.push(reason)
+    return reason
+  }
+
+  async bulkLeadSituationChangeReasonInsert(
+    reasons: LeadSituationChangeReasonModel[]
+  ): Promise<number> {
+    this.leadSituationChangeReasonItems.push(...reasons)
+    return reasons.length
+  }
+
+  clearLeadSituationChangeReasons(): void {
+    this.leadSituationChangeReasonItems.length = 0
+  }
+
+  getLeadSituationChangeReasonItems(): LeadSituationChangeReasonModel[] {
+    return [...this.leadSituationChangeReasonItems]
   }
 }
