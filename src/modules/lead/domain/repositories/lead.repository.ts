@@ -9,6 +9,7 @@ import { CnaeModel } from '../models/cnae.model'
 import { CompanyModel } from '../models/company.model'
 import { EstablishmentModel } from '../models/establishment.model'
 import { LeadSituationChangeReasonModel } from '../models/lead-situation-change-reason.model'
+import { MunicipalityModel } from '../models/municipality.model'
 
 export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   // Busca por campos únicos
@@ -101,4 +102,12 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   bulkLeadSituationChangeReasonInsert(
     reasons: LeadSituationChangeReasonModel[]
   ): Promise<number>
+
+  // municipality module
+  findMunicipalityByCode(code: string): Promise<MunicipalityModel | null>
+  findAllMunicipalities(): Promise<MunicipalityModel[]>
+  createMunicipality(
+    municipality: MunicipalityModel
+  ): Promise<MunicipalityModel>
+  bulkMunicipalityInsert(municipalities: MunicipalityModel[]): Promise<number>
 }

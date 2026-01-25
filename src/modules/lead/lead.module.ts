@@ -11,7 +11,8 @@ import {
   CnaeController,
   CompanyController,
   EstablishmentController,
-  LeadSituationChangeReasonController
+  LeadSituationChangeReasonController,
+  MunicipalityController
 } from './application/controllers'
 import {
   LEAD_CATEGORY_PROVIDERS,
@@ -22,7 +23,8 @@ import {
   CNAE_PROVIDERS,
   COMPANY_PROVIDERS,
   ESTABLISHMENT_PROVIDERS,
-  LEAD_SITUATION_CHANGE_REASON_PROVIDERS
+  LEAD_SITUATION_CHANGE_REASON_PROVIDERS,
+  MUNICIPALITY_PROVIDERS
 } from './infra/providers'
 import { SharedModule } from '@modules/shared/shared.module'
 import { SIMPLE_PROVIDERS } from './infra/providers/simple.provider'
@@ -42,7 +44,9 @@ import {
   EstablishmentImportProcessor,
   ESTABLISHMENT_IMPORT_QUEUE,
   LeadSituationChangeReasonImportProcessor,
-  LEAD_SITUATION_CHANGE_REASON_IMPORT_QUEUE
+  LEAD_SITUATION_CHANGE_REASON_IMPORT_QUEUE,
+  MunicipalityImportProcessor,
+  MUNICIPALITY_IMPORT_QUEUE
 } from './infra/queues'
 import { EnvModule, EnvService } from '@modules/env'
 
@@ -69,7 +73,8 @@ import { EnvModule, EnvService } from '@modules/env'
       { name: CNAE_IMPORT_QUEUE },
       { name: COMPANY_IMPORT_QUEUE },
       { name: ESTABLISHMENT_IMPORT_QUEUE },
-      { name: LEAD_SITUATION_CHANGE_REASON_IMPORT_QUEUE }
+      { name: LEAD_SITUATION_CHANGE_REASON_IMPORT_QUEUE },
+      { name: MUNICIPALITY_IMPORT_QUEUE }
     )
   ],
   controllers: [
@@ -82,7 +87,8 @@ import { EnvModule, EnvService } from '@modules/env'
     CnaeController,
     CompanyController,
     EstablishmentController,
-    LeadSituationChangeReasonController
+    LeadSituationChangeReasonController,
+    MunicipalityController
   ],
   providers: [
     LeadService,
@@ -106,7 +112,11 @@ import { EnvModule, EnvService } from '@modules/env'
     ...Object.values(CNAE_PROVIDERS.USE_CASES_PROVIDERS),
     ...Object.values(COMPANY_PROVIDERS.USE_CASES_PROVIDERS),
     ...Object.values(ESTABLISHMENT_PROVIDERS.USE_CASES_PROVIDERS),
-    ...Object.values(LEAD_SITUATION_CHANGE_REASON_PROVIDERS.USE_CASES_PROVIDERS)
+    ...Object.values(
+      LEAD_SITUATION_CHANGE_REASON_PROVIDERS.USE_CASES_PROVIDERS
+    ),
+    MunicipalityImportProcessor,
+    ...Object.values(MUNICIPALITY_PROVIDERS.USE_CASES_PROVIDERS)
   ]
 })
 export class LeadModule {}

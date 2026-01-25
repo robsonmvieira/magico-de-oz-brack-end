@@ -7,6 +7,7 @@ import { CnaeModel } from '@modules/lead/domain/models/cnae.model'
 import { CompanyModel } from '@modules/lead/domain/models/company.model'
 import { EstablishmentModel } from '@modules/lead/domain/models/establishment.model'
 import { LeadSituationChangeReasonModel } from '@modules/lead/domain/models/lead-situation-change-reason.model'
+import { MunicipalityModel } from '@modules/lead/domain/models/municipality.model'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
@@ -22,6 +23,7 @@ export class LeadInMemoryRepository implements ILeadRepository {
   private readonly establishmentItems: EstablishmentModel[] = []
   private readonly leadSituationChangeReasonItems: LeadSituationChangeReasonModel[] =
     []
+  private readonly municipalityItems: MunicipalityModel[] = []
 
   async save(entity: NewLeadModel): Promise<void> {
     const now = new Date()
@@ -450,5 +452,38 @@ export class LeadInMemoryRepository implements ILeadRepository {
 
   getLeadSituationChangeReasonItems(): LeadSituationChangeReasonModel[] {
     return [...this.leadSituationChangeReasonItems]
+  }
+
+  // Municipality module methods
+  async findMunicipalityByCode(
+    code: string
+  ): Promise<MunicipalityModel | null> {
+    return this.municipalityItems.find(item => item.code === code) ?? null
+  }
+
+  async findAllMunicipalities(): Promise<MunicipalityModel[]> {
+    return this.municipalityItems.filter(item => !item.isDeleted)
+  }
+
+  async createMunicipality(
+    municipality: MunicipalityModel
+  ): Promise<MunicipalityModel> {
+    this.municipalityItems.push(municipality)
+    return municipality
+  }
+
+  async bulkMunicipalityInsert(
+    municipalities: MunicipalityModel[]
+  ): Promise<number> {
+    this.municipalityItems.push(...municipalities)
+    return municipalities.length
+  }
+
+  clearMunicipalities(): void {
+    this.municipalityItems.length = 0
+  }
+
+  getMunicipalityItems(): MunicipalityModel[] {
+    return [...this.municipalityItems]
   }
 }
