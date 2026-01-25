@@ -12,7 +12,8 @@ import {
   CompanyController,
   EstablishmentController,
   LeadSituationChangeReasonController,
-  MunicipalityController
+  MunicipalityController,
+  LeadPartnerQualificationController
 } from './application/controllers'
 import {
   LEAD_CATEGORY_PROVIDERS,
@@ -24,7 +25,8 @@ import {
   COMPANY_PROVIDERS,
   ESTABLISHMENT_PROVIDERS,
   LEAD_SITUATION_CHANGE_REASON_PROVIDERS,
-  MUNICIPALITY_PROVIDERS
+  MUNICIPALITY_PROVIDERS,
+  LEAD_PARTNER_QUALIFICATION_PROVIDERS
 } from './infra/providers'
 import { SharedModule } from '@modules/shared/shared.module'
 import { SIMPLE_PROVIDERS } from './infra/providers/simple.provider'
@@ -46,7 +48,9 @@ import {
   LeadSituationChangeReasonImportProcessor,
   LEAD_SITUATION_CHANGE_REASON_IMPORT_QUEUE,
   MunicipalityImportProcessor,
-  MUNICIPALITY_IMPORT_QUEUE
+  MUNICIPALITY_IMPORT_QUEUE,
+  LeadPartnerQualificationImportProcessor,
+  LEAD_PARTNER_QUALIFICATION_IMPORT_QUEUE
 } from './infra/queues'
 import { EnvModule, EnvService } from '@modules/env'
 
@@ -74,7 +78,8 @@ import { EnvModule, EnvService } from '@modules/env'
       { name: COMPANY_IMPORT_QUEUE },
       { name: ESTABLISHMENT_IMPORT_QUEUE },
       { name: LEAD_SITUATION_CHANGE_REASON_IMPORT_QUEUE },
-      { name: MUNICIPALITY_IMPORT_QUEUE }
+      { name: MUNICIPALITY_IMPORT_QUEUE },
+      { name: LEAD_PARTNER_QUALIFICATION_IMPORT_QUEUE }
     )
   ],
   controllers: [
@@ -88,7 +93,8 @@ import { EnvModule, EnvService } from '@modules/env'
     CompanyController,
     EstablishmentController,
     LeadSituationChangeReasonController,
-    MunicipalityController
+    MunicipalityController,
+    LeadPartnerQualificationController
   ],
   providers: [
     LeadService,
@@ -116,7 +122,9 @@ import { EnvModule, EnvService } from '@modules/env'
       LEAD_SITUATION_CHANGE_REASON_PROVIDERS.USE_CASES_PROVIDERS
     ),
     MunicipalityImportProcessor,
-    ...Object.values(MUNICIPALITY_PROVIDERS.USE_CASES_PROVIDERS)
+    ...Object.values(MUNICIPALITY_PROVIDERS.USE_CASES_PROVIDERS),
+    LeadPartnerQualificationImportProcessor,
+    ...Object.values(LEAD_PARTNER_QUALIFICATION_PROVIDERS.USE_CASES_PROVIDERS)
   ]
 })
 export class LeadModule {}

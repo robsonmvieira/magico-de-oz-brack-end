@@ -8,6 +8,7 @@ import { CompanyModel } from '@modules/lead/domain/models/company.model'
 import { EstablishmentModel } from '@modules/lead/domain/models/establishment.model'
 import { LeadSituationChangeReasonModel } from '@modules/lead/domain/models/lead-situation-change-reason.model'
 import { MunicipalityModel } from '@modules/lead/domain/models/municipality.model'
+import { LeadPartnerQualificationModel } from '@modules/lead/domain/models/lead-partner-qualification.model'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
@@ -24,6 +25,8 @@ export class LeadInMemoryRepository implements ILeadRepository {
   private readonly leadSituationChangeReasonItems: LeadSituationChangeReasonModel[] =
     []
   private readonly municipalityItems: MunicipalityModel[] = []
+  private readonly leadPartnerQualificationItems: LeadPartnerQualificationModel[] =
+    []
 
   async save(entity: NewLeadModel): Promise<void> {
     const now = new Date()
@@ -485,5 +488,43 @@ export class LeadInMemoryRepository implements ILeadRepository {
 
   getMunicipalityItems(): MunicipalityModel[] {
     return [...this.municipalityItems]
+  }
+
+  // Lead Partner Qualification module methods
+  async findLeadPartnerQualificationByCode(
+    code: string
+  ): Promise<LeadPartnerQualificationModel | null> {
+    return (
+      this.leadPartnerQualificationItems.find(item => item.code === code) ??
+      null
+    )
+  }
+
+  async findAllLeadPartnerQualifications(): Promise<
+    LeadPartnerQualificationModel[]
+  > {
+    return this.leadPartnerQualificationItems.filter(item => !item.isDeleted)
+  }
+
+  async createLeadPartnerQualification(
+    qualification: LeadPartnerQualificationModel
+  ): Promise<LeadPartnerQualificationModel> {
+    this.leadPartnerQualificationItems.push(qualification)
+    return qualification
+  }
+
+  async bulkLeadPartnerQualificationInsert(
+    qualifications: LeadPartnerQualificationModel[]
+  ): Promise<number> {
+    this.leadPartnerQualificationItems.push(...qualifications)
+    return qualifications.length
+  }
+
+  clearLeadPartnerQualifications(): void {
+    this.leadPartnerQualificationItems.length = 0
+  }
+
+  getLeadPartnerQualificationItems(): LeadPartnerQualificationModel[] {
+    return [...this.leadPartnerQualificationItems]
   }
 }
