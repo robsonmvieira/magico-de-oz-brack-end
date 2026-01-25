@@ -3,6 +3,7 @@ import { LeadModel, NewLeadModel } from '../models'
 import { LeadStage, LeadTemperature } from '../enums'
 import { SimpleModel } from '../models/simple.model'
 import { PartnerModel } from '../models/partner.model'
+import { CountryModel } from '../models/country.model'
 
 export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   // Busca por campos únicos
@@ -44,4 +45,10 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   findPartnerByDoc(doc: string): Promise<PartnerModel | null>
   createPartner(partner: PartnerModel): Promise<PartnerModel>
   bulkPartnerInsert(partners: PartnerModel[]): Promise<number>
+
+  // country module
+  findCountryByCode(code: string): Promise<CountryModel | null>
+  findAllCountries(): Promise<CountryModel[]>
+  createCountry(country: CountryModel): Promise<CountryModel>
+  bulkCountryInsert(countries: CountryModel[]): Promise<number>
 }
