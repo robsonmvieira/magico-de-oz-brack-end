@@ -17,6 +17,10 @@ import {
   CountryModel,
   CountrySchema
 } from '@modules/lead/domain/models/country.model'
+import {
+  LegalNatureModel,
+  LegalNatureSchema
+} from '@modules/lead/domain/models/legal-nature.model'
 import { Pool } from 'pg'
 import { pipeline } from 'node:stream/promises'
 import { from as copyFrom } from 'pg-copy-streams'
@@ -29,6 +33,7 @@ export class LeadRepository
   private readonly simpleTable = SimpleSchema
   private readonly partnerTable = PartnerSchema
   private readonly countryTable = CountrySchema
+  private readonly legalNatureTable = LegalNatureSchema
 
   constructor(
     @Inject(DRIZZLE) db: DrizzleDB,
@@ -285,5 +290,43 @@ export class LeadRepository
   async bulkCountryInsert(countries: CountryModel[]): Promise<number> {
     await this.db.insert(this.countryTable).values(countries)
     return countries.length
+  }
+
+  // Legal Nature methods
+  async findLegalNatureByCode(code: string): Promise<LegalNatureModel | null> {
+    const result = await this.db
+      .select()
+      .from(this.legalNatureTable)
+      .where(eq(this.legalNatureTable.code, code))
+      .limit(1)
+
+    return result[0] || null
+  }
+
+  async findAllLegalNatures(): Promise<LegalNatureModel[]> {
+    const result = await this.db
+      .select()
+      .from(this.legalNatureTable)
+      .where(eq(this.legalNatureTable.isDeleted, false))
+
+    return result
+  }
+
+  async createLegalNature(
+    legalNature: LegalNatureModel
+  ): Promise<LegalNatureModel> {
+    const result = await this.db
+      .insert(this.legalNatureTable)
+      .values(legalNature)
+      .returning()
+
+    return result[0]
+  }
+
+  async bulkLegalNatureInsert(
+    legalNatures: LegalNatureModel[]
+  ): Promise<number> {
+    await this.db.insert(this.legalNatureTable).values(legalNatures)
+    return legalNatures.length
   }
 }
