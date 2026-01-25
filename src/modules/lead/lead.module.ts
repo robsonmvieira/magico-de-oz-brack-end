@@ -8,7 +8,8 @@ import {
   PartnerController,
   CountryController,
   LegalNatureController,
-  CnaeController
+  CnaeController,
+  CompanyController
 } from './application/controllers'
 import {
   LEAD_CATEGORY_PROVIDERS,
@@ -16,7 +17,8 @@ import {
   PARTNER_PROVIDERS,
   COUNTRY_PROVIDERS,
   LEGAL_NATURE_PROVIDERS,
-  CNAE_PROVIDERS
+  CNAE_PROVIDERS,
+  COMPANY_PROVIDERS
 } from './infra/providers'
 import { SharedModule } from '@modules/shared/shared.module'
 import { SIMPLE_PROVIDERS } from './infra/providers/simple.provider'
@@ -30,7 +32,9 @@ import {
   LegalNatureImportProcessor,
   LEGAL_NATURE_IMPORT_QUEUE,
   CnaeImportProcessor,
-  CNAE_IMPORT_QUEUE
+  CNAE_IMPORT_QUEUE,
+  CompanyImportProcessor,
+  COMPANY_IMPORT_QUEUE
 } from './infra/queues'
 import { EnvModule, EnvService } from '@modules/env'
 
@@ -54,7 +58,8 @@ import { EnvModule, EnvService } from '@modules/env'
       { name: PARTNER_IMPORT_QUEUE },
       { name: COUNTRY_IMPORT_QUEUE },
       { name: LEGAL_NATURE_IMPORT_QUEUE },
-      { name: CNAE_IMPORT_QUEUE }
+      { name: CNAE_IMPORT_QUEUE },
+      { name: COMPANY_IMPORT_QUEUE }
     )
   ],
   controllers: [
@@ -64,7 +69,8 @@ import { EnvModule, EnvService } from '@modules/env'
     PartnerController,
     CountryController,
     LegalNatureController,
-    CnaeController
+    CnaeController,
+    CompanyController
   ],
   providers: [
     LeadService,
@@ -73,6 +79,7 @@ import { EnvModule, EnvService } from '@modules/env'
     CountryImportProcessor,
     LegalNatureImportProcessor,
     CnaeImportProcessor,
+    CompanyImportProcessor,
     ...Object.values(LEAD_CATEGORY_PROVIDERS.REPOSITORY_PROVIDERS),
     ...Object.values(LEAD_CATEGORY_PROVIDERS.USE_CASES_PROVIDERS),
     ...Object.values(LEAD_PROVIDERS.REPOSITORY_PROVIDERS),
@@ -82,7 +89,8 @@ import { EnvModule, EnvService } from '@modules/env'
     ...Object.values(PARTNER_PROVIDERS.USE_CASES_PROVIDERS),
     ...Object.values(COUNTRY_PROVIDERS.USE_CASES_PROVIDERS),
     ...Object.values(LEGAL_NATURE_PROVIDERS.USE_CASES_PROVIDERS),
-    ...Object.values(CNAE_PROVIDERS.USE_CASES_PROVIDERS)
+    ...Object.values(CNAE_PROVIDERS.USE_CASES_PROVIDERS),
+    ...Object.values(COMPANY_PROVIDERS.USE_CASES_PROVIDERS)
   ]
 })
 export class LeadModule {}

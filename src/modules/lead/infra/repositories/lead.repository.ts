@@ -22,6 +22,10 @@ import {
   LegalNatureSchema
 } from '@modules/lead/domain/models/legal-nature.model'
 import { CnaeModel, CnaeSchema } from '@modules/lead/domain/models/cnae.model'
+import {
+  CompanyModel,
+  CompanySchema
+} from '@modules/lead/domain/models/company.model'
 import { Pool } from 'pg'
 import { pipeline } from 'node:stream/promises'
 import { from as copyFrom } from 'pg-copy-streams'
@@ -36,6 +40,7 @@ export class LeadRepository
   private readonly countryTable = CountrySchema
   private readonly legalNatureTable = LegalNatureSchema
   private readonly cnaeTable = CnaeSchema
+  private readonly companyTable = CompanySchema
 
   constructor(
     @Inject(DRIZZLE) db: DrizzleDB,
@@ -361,5 +366,42 @@ export class LeadRepository
   async bulkCnaeInsert(cnaes: CnaeModel[]): Promise<number> {
     await this.db.insert(this.cnaeTable).values(cnaes)
     return cnaes.length
+  }
+
+  // Company methods
+  async findCompanyByBasicCnpj(
+    basicCnpj: string
+  ): Promise<CompanyModel | null> {
+    const normalizedCnpj = basicCnpj.replaceAll(/\D/g, '')
+    const result = await this.db
+      .select()
+      .from(this.companyTable)
+      .where(eq(this.companyTable.basic_cnpj, normalizedCnpj))
+      .limit(1)
+
+    return result[0] || null
+  }
+
+  async findAllCompanies(): Promise<CompanyModel[]> {
+    const result = await this.db
+      .select()
+      .from(this.companyTable)
+      .where(eq(this.companyTable.isDeleted, false))
+
+    return result
+  }
+
+  async createCompany(company: CompanyModel): Promise<CompanyModel> {
+    const result = await this.db
+      .insert(this.companyTable)
+      .values(company)
+      .returning()
+
+    return result[0]
+  }
+
+  async bulkCompanyInsert(companies: CompanyModel[]): Promise<number> {
+    await this.db.insert(this.companyTable).values(companies)
+    return companies.length
   }
 }
