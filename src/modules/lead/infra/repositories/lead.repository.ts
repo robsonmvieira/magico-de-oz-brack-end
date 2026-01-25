@@ -13,6 +13,10 @@ import {
   PartnerModel,
   PartnerSchema
 } from '@modules/lead/domain/models/partner.model'
+import {
+  CountryModel,
+  CountrySchema
+} from '@modules/lead/domain/models/country.model'
 import { Pool } from 'pg'
 import { pipeline } from 'node:stream/promises'
 import { from as copyFrom } from 'pg-copy-streams'
@@ -24,6 +28,7 @@ export class LeadRepository
 {
   private readonly simpleTable = SimpleSchema
   private readonly partnerTable = PartnerSchema
+  private readonly countryTable = CountrySchema
 
   constructor(
     @Inject(DRIZZLE) db: DrizzleDB,
@@ -246,5 +251,39 @@ export class LeadRepository
   async bulkPartnerInsert(partners: PartnerModel[]): Promise<number> {
     await this.db.insert(this.partnerTable).values(partners)
     return partners.length
+  }
+
+  // Country methods
+  async findCountryByCode(code: string): Promise<CountryModel | null> {
+    const result = await this.db
+      .select()
+      .from(this.countryTable)
+      .where(eq(this.countryTable.code, code))
+      .limit(1)
+
+    return result[0] || null
+  }
+
+  async findAllCountries(): Promise<CountryModel[]> {
+    const result = await this.db
+      .select()
+      .from(this.countryTable)
+      .where(eq(this.countryTable.isDeleted, false))
+
+    return result
+  }
+
+  async createCountry(country: CountryModel): Promise<CountryModel> {
+    const result = await this.db
+      .insert(this.countryTable)
+      .values(country)
+      .returning()
+
+    return result[0]
+  }
+
+  async bulkCountryInsert(countries: CountryModel[]): Promise<number> {
+    await this.db.insert(this.countryTable).values(countries)
+    return countries.length
   }
 }
