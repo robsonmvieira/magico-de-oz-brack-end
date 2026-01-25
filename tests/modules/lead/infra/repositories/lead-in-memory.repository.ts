@@ -3,6 +3,7 @@ import { SimpleModel } from '@modules/lead/domain/models/simple.model'
 import { PartnerModel } from '@modules/lead/domain/models/partner.model'
 import { CountryModel } from '@modules/lead/domain/models/country.model'
 import { LegalNatureModel } from '@modules/lead/domain/models/legal-nature.model'
+import { CnaeModel } from '@modules/lead/domain/models/cnae.model'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
@@ -13,6 +14,7 @@ export class LeadInMemoryRepository implements ILeadRepository {
   private readonly partnerItems: PartnerModel[] = []
   private readonly countryItems: CountryModel[] = []
   private readonly legalNatureItems: LegalNatureModel[] = []
+  private readonly cnaeItems: CnaeModel[] = []
 
   async save(entity: NewLeadModel): Promise<void> {
     const now = new Date()
@@ -290,5 +292,32 @@ export class LeadInMemoryRepository implements ILeadRepository {
 
   getLegalNatureItems(): LegalNatureModel[] {
     return [...this.legalNatureItems]
+  }
+
+  // CNAE module methods
+  async findCnaeByCode(code: string): Promise<CnaeModel | null> {
+    return this.cnaeItems.find(item => item.code === code) ?? null
+  }
+
+  async findAllCnaes(): Promise<CnaeModel[]> {
+    return this.cnaeItems.filter(item => !item.isDeleted)
+  }
+
+  async createCnae(cnae: CnaeModel): Promise<CnaeModel> {
+    this.cnaeItems.push(cnae)
+    return cnae
+  }
+
+  async bulkCnaeInsert(cnaes: CnaeModel[]): Promise<number> {
+    this.cnaeItems.push(...cnaes)
+    return cnaes.length
+  }
+
+  clearCnaes(): void {
+    this.cnaeItems.length = 0
+  }
+
+  getCnaeItems(): CnaeModel[] {
+    return [...this.cnaeItems]
   }
 }
