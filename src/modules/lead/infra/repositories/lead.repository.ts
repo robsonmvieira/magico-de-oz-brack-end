@@ -21,6 +21,7 @@ import {
   LegalNatureModel,
   LegalNatureSchema
 } from '@modules/lead/domain/models/legal-nature.model'
+import { CnaeModel, CnaeSchema } from '@modules/lead/domain/models/cnae.model'
 import { Pool } from 'pg'
 import { pipeline } from 'node:stream/promises'
 import { from as copyFrom } from 'pg-copy-streams'
@@ -34,6 +35,7 @@ export class LeadRepository
   private readonly partnerTable = PartnerSchema
   private readonly countryTable = CountrySchema
   private readonly legalNatureTable = LegalNatureSchema
+  private readonly cnaeTable = CnaeSchema
 
   constructor(
     @Inject(DRIZZLE) db: DrizzleDB,
@@ -328,5 +330,36 @@ export class LeadRepository
   ): Promise<number> {
     await this.db.insert(this.legalNatureTable).values(legalNatures)
     return legalNatures.length
+  }
+
+  // CNAE methods
+  async findCnaeByCode(code: string): Promise<CnaeModel | null> {
+    const result = await this.db
+      .select()
+      .from(this.cnaeTable)
+      .where(eq(this.cnaeTable.code, code))
+      .limit(1)
+
+    return result[0] || null
+  }
+
+  async findAllCnaes(): Promise<CnaeModel[]> {
+    const result = await this.db
+      .select()
+      .from(this.cnaeTable)
+      .where(eq(this.cnaeTable.isDeleted, false))
+
+    return result
+  }
+
+  async createCnae(cnae: CnaeModel): Promise<CnaeModel> {
+    const result = await this.db.insert(this.cnaeTable).values(cnae).returning()
+
+    return result[0]
+  }
+
+  async bulkCnaeInsert(cnaes: CnaeModel[]): Promise<number> {
+    await this.db.insert(this.cnaeTable).values(cnaes)
+    return cnaes.length
   }
 }
