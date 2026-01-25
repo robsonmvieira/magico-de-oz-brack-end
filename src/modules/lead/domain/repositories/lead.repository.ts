@@ -8,6 +8,7 @@ import { LegalNatureModel } from '../models/legal-nature.model'
 import { CnaeModel } from '../models/cnae.model'
 import { CompanyModel } from '../models/company.model'
 import { EstablishmentModel } from '../models/establishment.model'
+import { LeadSituationChangeReasonModel } from '../models/lead-situation-change-reason.model'
 
 export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   // Busca por campos únicos
@@ -88,4 +89,16 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
     establishment: EstablishmentModel
   ): Promise<EstablishmentModel>
   bulkEstablishmentInsert(establishments: EstablishmentModel[]): Promise<number>
+
+  // lead situation change reason module
+  findLeadSituationChangeReasonByCode(
+    code: string
+  ): Promise<LeadSituationChangeReasonModel | null>
+  findAllLeadSituationChangeReasons(): Promise<LeadSituationChangeReasonModel[]>
+  createLeadSituationChangeReason(
+    reason: LeadSituationChangeReasonModel
+  ): Promise<LeadSituationChangeReasonModel>
+  bulkLeadSituationChangeReasonInsert(
+    reasons: LeadSituationChangeReasonModel[]
+  ): Promise<number>
 }

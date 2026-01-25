@@ -30,6 +30,10 @@ import {
   EstablishmentModel,
   EstablishmentSchema
 } from '@modules/lead/domain/models/establishment.model'
+import {
+  LeadSituationChangeReasonModel,
+  LeadSituationChangeReasonSchema
+} from '@modules/lead/domain/models/lead-situation-change-reason.model'
 import { Pool } from 'pg'
 import { pipeline } from 'node:stream/promises'
 import { from as copyFrom } from 'pg-copy-streams'
@@ -46,6 +50,8 @@ export class LeadRepository
   private readonly cnaeTable = CnaeSchema
   private readonly companyTable = CompanySchema
   private readonly establishmentTable = EstablishmentSchema
+  private readonly leadSituationChangeReasonTable =
+    LeadSituationChangeReasonSchema
 
   constructor(
     @Inject(DRIZZLE) db: DrizzleDB,
@@ -472,5 +478,47 @@ export class LeadRepository
   ): Promise<number> {
     await this.db.insert(this.establishmentTable).values(establishments)
     return establishments.length
+  }
+
+  // Lead Situation Change Reason methods
+  async findLeadSituationChangeReasonByCode(
+    code: string
+  ): Promise<LeadSituationChangeReasonModel | null> {
+    const result = await this.db
+      .select()
+      .from(this.leadSituationChangeReasonTable)
+      .where(eq(this.leadSituationChangeReasonTable.code, code))
+      .limit(1)
+
+    return result[0] || null
+  }
+
+  async findAllLeadSituationChangeReasons(): Promise<
+    LeadSituationChangeReasonModel[]
+  > {
+    const result = await this.db
+      .select()
+      .from(this.leadSituationChangeReasonTable)
+      .where(eq(this.leadSituationChangeReasonTable.isDeleted, false))
+
+    return result
+  }
+
+  async createLeadSituationChangeReason(
+    reason: LeadSituationChangeReasonModel
+  ): Promise<LeadSituationChangeReasonModel> {
+    const result = await this.db
+      .insert(this.leadSituationChangeReasonTable)
+      .values(reason)
+      .returning()
+
+    return result[0]
+  }
+
+  async bulkLeadSituationChangeReasonInsert(
+    reasons: LeadSituationChangeReasonModel[]
+  ): Promise<number> {
+    await this.db.insert(this.leadSituationChangeReasonTable).values(reasons)
+    return reasons.length
   }
 }
