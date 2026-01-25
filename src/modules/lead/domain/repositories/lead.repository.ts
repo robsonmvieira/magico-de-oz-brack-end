@@ -6,6 +6,7 @@ import { PartnerModel } from '../models/partner.model'
 import { CountryModel } from '../models/country.model'
 import { LegalNatureModel } from '../models/legal-nature.model'
 import { CnaeModel } from '../models/cnae.model'
+import { CompanyModel } from '../models/company.model'
 
 export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   // Busca por campos únicos
@@ -65,4 +66,10 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   findAllCnaes(): Promise<CnaeModel[]>
   createCnae(cnae: CnaeModel): Promise<CnaeModel>
   bulkCnaeInsert(cnaes: CnaeModel[]): Promise<number>
+
+  // company module
+  findCompanyByBasicCnpj(basicCnpj: string): Promise<CompanyModel | null>
+  findAllCompanies(): Promise<CompanyModel[]>
+  createCompany(company: CompanyModel): Promise<CompanyModel>
+  bulkCompanyInsert(companies: CompanyModel[]): Promise<number>
 }

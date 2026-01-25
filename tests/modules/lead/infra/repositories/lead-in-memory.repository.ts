@@ -4,6 +4,7 @@ import { PartnerModel } from '@modules/lead/domain/models/partner.model'
 import { CountryModel } from '@modules/lead/domain/models/country.model'
 import { LegalNatureModel } from '@modules/lead/domain/models/legal-nature.model'
 import { CnaeModel } from '@modules/lead/domain/models/cnae.model'
+import { CompanyModel } from '@modules/lead/domain/models/company.model'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
@@ -15,6 +16,7 @@ export class LeadInMemoryRepository implements ILeadRepository {
   private readonly countryItems: CountryModel[] = []
   private readonly legalNatureItems: LegalNatureModel[] = []
   private readonly cnaeItems: CnaeModel[] = []
+  private readonly companyItems: CompanyModel[] = []
 
   async save(entity: NewLeadModel): Promise<void> {
     const now = new Date()
@@ -319,5 +321,37 @@ export class LeadInMemoryRepository implements ILeadRepository {
 
   getCnaeItems(): CnaeModel[] {
     return [...this.cnaeItems]
+  }
+
+  // Company module methods
+  async findCompanyByBasicCnpj(
+    basicCnpj: string
+  ): Promise<CompanyModel | null> {
+    const normalizedCnpj = basicCnpj.replaceAll(/\D/g, '')
+    return (
+      this.companyItems.find(item => item.basic_cnpj === normalizedCnpj) ?? null
+    )
+  }
+
+  async findAllCompanies(): Promise<CompanyModel[]> {
+    return this.companyItems.filter(item => !item.isDeleted)
+  }
+
+  async createCompany(company: CompanyModel): Promise<CompanyModel> {
+    this.companyItems.push(company)
+    return company
+  }
+
+  async bulkCompanyInsert(companies: CompanyModel[]): Promise<number> {
+    this.companyItems.push(...companies)
+    return companies.length
+  }
+
+  clearCompanies(): void {
+    this.companyItems.length = 0
+  }
+
+  getCompanyItems(): CompanyModel[] {
+    return [...this.companyItems]
   }
 }
