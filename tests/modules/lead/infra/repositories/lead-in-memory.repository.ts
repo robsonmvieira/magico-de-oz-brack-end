@@ -2,6 +2,7 @@ import { LeadModel, NewLeadModel } from '@modules/lead/domain/models'
 import { SimpleModel } from '@modules/lead/domain/models/simple.model'
 import { PartnerModel } from '@modules/lead/domain/models/partner.model'
 import { CountryModel } from '@modules/lead/domain/models/country.model'
+import { LegalNatureModel } from '@modules/lead/domain/models/legal-nature.model'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
@@ -11,6 +12,7 @@ export class LeadInMemoryRepository implements ILeadRepository {
   private readonly simpleItems: SimpleModel[] = []
   private readonly partnerItems: PartnerModel[] = []
   private readonly countryItems: CountryModel[] = []
+  private readonly legalNatureItems: LegalNatureModel[] = []
 
   async save(entity: NewLeadModel): Promise<void> {
     const now = new Date()
@@ -226,6 +228,29 @@ export class LeadInMemoryRepository implements ILeadRepository {
     return countries.length
   }
 
+  // Legal Nature module methods
+  async findLegalNatureByCode(code: string): Promise<LegalNatureModel | null> {
+    return this.legalNatureItems.find(item => item.code === code) ?? null
+  }
+
+  async findAllLegalNatures(): Promise<LegalNatureModel[]> {
+    return this.legalNatureItems.filter(item => !item.isDeleted)
+  }
+
+  async createLegalNature(
+    legalNature: LegalNatureModel
+  ): Promise<LegalNatureModel> {
+    this.legalNatureItems.push(legalNature)
+    return legalNature
+  }
+
+  async bulkLegalNatureInsert(
+    legalNatures: LegalNatureModel[]
+  ): Promise<number> {
+    this.legalNatureItems.push(...legalNatures)
+    return legalNatures.length
+  }
+
   // Métodos auxiliares para testes
   clear(): void {
     this.items = []
@@ -257,5 +282,13 @@ export class LeadInMemoryRepository implements ILeadRepository {
 
   getCountryItems(): CountryModel[] {
     return [...this.countryItems]
+  }
+
+  clearLegalNatures(): void {
+    this.legalNatureItems.length = 0
+  }
+
+  getLegalNatureItems(): LegalNatureModel[] {
+    return [...this.legalNatureItems]
   }
 }

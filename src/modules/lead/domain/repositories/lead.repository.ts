@@ -4,6 +4,7 @@ import { LeadStage, LeadTemperature } from '../enums'
 import { SimpleModel } from '../models/simple.model'
 import { PartnerModel } from '../models/partner.model'
 import { CountryModel } from '../models/country.model'
+import { LegalNatureModel } from '../models/legal-nature.model'
 
 export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   // Busca por campos únicos
@@ -51,4 +52,10 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   findAllCountries(): Promise<CountryModel[]>
   createCountry(country: CountryModel): Promise<CountryModel>
   bulkCountryInsert(countries: CountryModel[]): Promise<number>
+
+  // legal nature module
+  findLegalNatureByCode(code: string): Promise<LegalNatureModel | null>
+  findAllLegalNatures(): Promise<LegalNatureModel[]>
+  createLegalNature(legalNature: LegalNatureModel): Promise<LegalNatureModel>
+  bulkLegalNatureInsert(legalNatures: LegalNatureModel[]): Promise<number>
 }

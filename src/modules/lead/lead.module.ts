@@ -6,13 +6,15 @@ import {
   LeadController,
   SimpleController,
   PartnerController,
-  CountryController
+  CountryController,
+  LegalNatureController
 } from './application/controllers'
 import {
   LEAD_CATEGORY_PROVIDERS,
   LEAD_PROVIDERS,
   PARTNER_PROVIDERS,
-  COUNTRY_PROVIDERS
+  COUNTRY_PROVIDERS,
+  LEGAL_NATURE_PROVIDERS
 } from './infra/providers'
 import { SharedModule } from '@modules/shared/shared.module'
 import { SIMPLE_PROVIDERS } from './infra/providers/simple.provider'
@@ -22,7 +24,9 @@ import {
   PartnerImportProcessor,
   PARTNER_IMPORT_QUEUE,
   CountryImportProcessor,
-  COUNTRY_IMPORT_QUEUE
+  COUNTRY_IMPORT_QUEUE,
+  LegalNatureImportProcessor,
+  LEGAL_NATURE_IMPORT_QUEUE
 } from './infra/queues'
 import { EnvModule, EnvService } from '@modules/env'
 
@@ -44,7 +48,8 @@ import { EnvModule, EnvService } from '@modules/env'
     BullModule.registerQueue(
       { name: SIMPLE_IMPORT_QUEUE },
       { name: PARTNER_IMPORT_QUEUE },
-      { name: COUNTRY_IMPORT_QUEUE }
+      { name: COUNTRY_IMPORT_QUEUE },
+      { name: LEGAL_NATURE_IMPORT_QUEUE }
     )
   ],
   controllers: [
@@ -52,13 +57,15 @@ import { EnvModule, EnvService } from '@modules/env'
     LeadCategoryController,
     SimpleController,
     PartnerController,
-    CountryController
+    CountryController,
+    LegalNatureController
   ],
   providers: [
     LeadService,
     SimpleImportProcessor,
     PartnerImportProcessor,
     CountryImportProcessor,
+    LegalNatureImportProcessor,
     ...Object.values(LEAD_CATEGORY_PROVIDERS.REPOSITORY_PROVIDERS),
     ...Object.values(LEAD_CATEGORY_PROVIDERS.USE_CASES_PROVIDERS),
     ...Object.values(LEAD_PROVIDERS.REPOSITORY_PROVIDERS),
@@ -66,7 +73,8 @@ import { EnvModule, EnvService } from '@modules/env'
     ...Object.values(SIMPLE_PROVIDERS.SERVICE_PROVIDERS),
     ...Object.values(SIMPLE_PROVIDERS.USE_CASES_PROVIDERS),
     ...Object.values(PARTNER_PROVIDERS.USE_CASES_PROVIDERS),
-    ...Object.values(COUNTRY_PROVIDERS.USE_CASES_PROVIDERS)
+    ...Object.values(COUNTRY_PROVIDERS.USE_CASES_PROVIDERS),
+    ...Object.values(LEGAL_NATURE_PROVIDERS.USE_CASES_PROVIDERS)
   ]
 })
 export class LeadModule {}

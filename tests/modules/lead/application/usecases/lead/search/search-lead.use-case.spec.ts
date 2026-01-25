@@ -68,7 +68,11 @@ const createMockLeadRepository = (): jest.Mocked<ILeadRepository> => ({
   findCountryByCode: jest.fn(),
   findAllCountries: jest.fn(),
   createCountry: jest.fn(),
-  bulkCountryInsert: jest.fn()
+  bulkCountryInsert: jest.fn(),
+  findLegalNatureByCode: jest.fn(),
+  findAllLegalNatures: jest.fn(),
+  createLegalNature: jest.fn(),
+  bulkLegalNatureInsert: jest.fn()
 })
 
 const createMockUnitOfWork = (): jest.Mocked<IUnitOfWork<any>> => ({
