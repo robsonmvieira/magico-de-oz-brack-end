@@ -85,7 +85,11 @@ const createMockLeadRepository = (): jest.Mocked<ILeadRepository> => ({
   findEstablishmentsByBasicCnpj: jest.fn(),
   findAllEstablishments: jest.fn(),
   createEstablishment: jest.fn(),
-  bulkEstablishmentInsert: jest.fn()
+  bulkEstablishmentInsert: jest.fn(),
+  findLeadSituationChangeReasonByCode: jest.fn(),
+  findAllLeadSituationChangeReasons: jest.fn(),
+  createLeadSituationChangeReason: jest.fn(),
+  bulkLeadSituationChangeReasonInsert: jest.fn()
 })
 
 const createMockUnitOfWork = (): jest.Mocked<IUnitOfWork<any>> => ({

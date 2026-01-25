@@ -10,7 +10,8 @@ import {
   LegalNatureController,
   CnaeController,
   CompanyController,
-  EstablishmentController
+  EstablishmentController,
+  LeadSituationChangeReasonController
 } from './application/controllers'
 import {
   LEAD_CATEGORY_PROVIDERS,
@@ -20,7 +21,8 @@ import {
   LEGAL_NATURE_PROVIDERS,
   CNAE_PROVIDERS,
   COMPANY_PROVIDERS,
-  ESTABLISHMENT_PROVIDERS
+  ESTABLISHMENT_PROVIDERS,
+  LEAD_SITUATION_CHANGE_REASON_PROVIDERS
 } from './infra/providers'
 import { SharedModule } from '@modules/shared/shared.module'
 import { SIMPLE_PROVIDERS } from './infra/providers/simple.provider'
@@ -38,7 +40,9 @@ import {
   CompanyImportProcessor,
   COMPANY_IMPORT_QUEUE,
   EstablishmentImportProcessor,
-  ESTABLISHMENT_IMPORT_QUEUE
+  ESTABLISHMENT_IMPORT_QUEUE,
+  LeadSituationChangeReasonImportProcessor,
+  LEAD_SITUATION_CHANGE_REASON_IMPORT_QUEUE
 } from './infra/queues'
 import { EnvModule, EnvService } from '@modules/env'
 
@@ -64,7 +68,8 @@ import { EnvModule, EnvService } from '@modules/env'
       { name: LEGAL_NATURE_IMPORT_QUEUE },
       { name: CNAE_IMPORT_QUEUE },
       { name: COMPANY_IMPORT_QUEUE },
-      { name: ESTABLISHMENT_IMPORT_QUEUE }
+      { name: ESTABLISHMENT_IMPORT_QUEUE },
+      { name: LEAD_SITUATION_CHANGE_REASON_IMPORT_QUEUE }
     )
   ],
   controllers: [
@@ -76,7 +81,8 @@ import { EnvModule, EnvService } from '@modules/env'
     LegalNatureController,
     CnaeController,
     CompanyController,
-    EstablishmentController
+    EstablishmentController,
+    LeadSituationChangeReasonController
   ],
   providers: [
     LeadService,
@@ -87,6 +93,7 @@ import { EnvModule, EnvService } from '@modules/env'
     CnaeImportProcessor,
     CompanyImportProcessor,
     EstablishmentImportProcessor,
+    LeadSituationChangeReasonImportProcessor,
     ...Object.values(LEAD_CATEGORY_PROVIDERS.REPOSITORY_PROVIDERS),
     ...Object.values(LEAD_CATEGORY_PROVIDERS.USE_CASES_PROVIDERS),
     ...Object.values(LEAD_PROVIDERS.REPOSITORY_PROVIDERS),
@@ -98,7 +105,8 @@ import { EnvModule, EnvService } from '@modules/env'
     ...Object.values(LEGAL_NATURE_PROVIDERS.USE_CASES_PROVIDERS),
     ...Object.values(CNAE_PROVIDERS.USE_CASES_PROVIDERS),
     ...Object.values(COMPANY_PROVIDERS.USE_CASES_PROVIDERS),
-    ...Object.values(ESTABLISHMENT_PROVIDERS.USE_CASES_PROVIDERS)
+    ...Object.values(ESTABLISHMENT_PROVIDERS.USE_CASES_PROVIDERS),
+    ...Object.values(LEAD_SITUATION_CHANGE_REASON_PROVIDERS.USE_CASES_PROVIDERS)
   ]
 })
 export class LeadModule {}
