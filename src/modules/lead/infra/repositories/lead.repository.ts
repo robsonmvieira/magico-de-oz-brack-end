@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { DrizzleRepository } from '@modules/shared/infra/repositories'
 import { DRIZZLE, DrizzleDB, PG_POOL } from '@modules/database'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
@@ -26,6 +26,10 @@ import {
   CompanyModel,
   CompanySchema
 } from '@modules/lead/domain/models/company.model'
+import {
+  EstablishmentModel,
+  EstablishmentSchema
+} from '@modules/lead/domain/models/establishment.model'
 import { Pool } from 'pg'
 import { pipeline } from 'node:stream/promises'
 import { from as copyFrom } from 'pg-copy-streams'
@@ -41,6 +45,7 @@ export class LeadRepository
   private readonly legalNatureTable = LegalNatureSchema
   private readonly cnaeTable = CnaeSchema
   private readonly companyTable = CompanySchema
+  private readonly establishmentTable = EstablishmentSchema
 
   constructor(
     @Inject(DRIZZLE) db: DrizzleDB,
@@ -403,5 +408,69 @@ export class LeadRepository
   async bulkCompanyInsert(companies: CompanyModel[]): Promise<number> {
     await this.db.insert(this.companyTable).values(companies)
     return companies.length
+  }
+
+  // Establishment methods
+  async findEstablishmentByFullCnpj(
+    basicCnpj: string,
+    cnpjOrder: string,
+    cnpjDv: string
+  ): Promise<EstablishmentModel | null> {
+    const normalizedBasicCnpj = basicCnpj.replaceAll(/\D/g, '')
+    const normalizedCnpjOrder = cnpjOrder.replaceAll(/\D/g, '')
+    const normalizedCnpjDv = cnpjDv.replaceAll(/\D/g, '')
+
+    const result = await this.db
+      .select()
+      .from(this.establishmentTable)
+      .where(
+        and(
+          eq(this.establishmentTable.basic_cnpj, normalizedBasicCnpj),
+          eq(this.establishmentTable.cnpj_order, normalizedCnpjOrder),
+          eq(this.establishmentTable.cnpj_dv, normalizedCnpjDv)
+        )
+      )
+      .limit(1)
+
+    return result[0] || null
+  }
+
+  async findEstablishmentsByBasicCnpj(
+    basicCnpj: string
+  ): Promise<EstablishmentModel[]> {
+    const normalizedCnpj = basicCnpj.replaceAll(/\D/g, '')
+    const result = await this.db
+      .select()
+      .from(this.establishmentTable)
+      .where(eq(this.establishmentTable.basic_cnpj, normalizedCnpj))
+
+    return result
+  }
+
+  async findAllEstablishments(): Promise<EstablishmentModel[]> {
+    const result = await this.db
+      .select()
+      .from(this.establishmentTable)
+      .where(eq(this.establishmentTable.isDeleted, false))
+
+    return result
+  }
+
+  async createEstablishment(
+    establishment: EstablishmentModel
+  ): Promise<EstablishmentModel> {
+    const result = await this.db
+      .insert(this.establishmentTable)
+      .values(establishment)
+      .returning()
+
+    return result[0]
+  }
+
+  async bulkEstablishmentInsert(
+    establishments: EstablishmentModel[]
+  ): Promise<number> {
+    await this.db.insert(this.establishmentTable).values(establishments)
+    return establishments.length
   }
 }

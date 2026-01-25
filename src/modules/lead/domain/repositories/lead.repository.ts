@@ -7,6 +7,7 @@ import { CountryModel } from '../models/country.model'
 import { LegalNatureModel } from '../models/legal-nature.model'
 import { CnaeModel } from '../models/cnae.model'
 import { CompanyModel } from '../models/company.model'
+import { EstablishmentModel } from '../models/establishment.model'
 
 export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   // Busca por campos únicos
@@ -72,4 +73,19 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   findAllCompanies(): Promise<CompanyModel[]>
   createCompany(company: CompanyModel): Promise<CompanyModel>
   bulkCompanyInsert(companies: CompanyModel[]): Promise<number>
+
+  // establishment module
+  findEstablishmentByFullCnpj(
+    basicCnpj: string,
+    cnpjOrder: string,
+    cnpjDv: string
+  ): Promise<EstablishmentModel | null>
+  findEstablishmentsByBasicCnpj(
+    basicCnpj: string
+  ): Promise<EstablishmentModel[]>
+  findAllEstablishments(): Promise<EstablishmentModel[]>
+  createEstablishment(
+    establishment: EstablishmentModel
+  ): Promise<EstablishmentModel>
+  bulkEstablishmentInsert(establishments: EstablishmentModel[]): Promise<number>
 }

@@ -5,6 +5,7 @@ import { CountryModel } from '@modules/lead/domain/models/country.model'
 import { LegalNatureModel } from '@modules/lead/domain/models/legal-nature.model'
 import { CnaeModel } from '@modules/lead/domain/models/cnae.model'
 import { CompanyModel } from '@modules/lead/domain/models/company.model'
+import { EstablishmentModel } from '@modules/lead/domain/models/establishment.model'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
@@ -17,6 +18,7 @@ export class LeadInMemoryRepository implements ILeadRepository {
   private readonly legalNatureItems: LegalNatureModel[] = []
   private readonly cnaeItems: CnaeModel[] = []
   private readonly companyItems: CompanyModel[] = []
+  private readonly establishmentItems: EstablishmentModel[] = []
 
   async save(entity: NewLeadModel): Promise<void> {
     const now = new Date()
@@ -353,5 +355,59 @@ export class LeadInMemoryRepository implements ILeadRepository {
 
   getCompanyItems(): CompanyModel[] {
     return [...this.companyItems]
+  }
+
+  // Establishment module methods
+  async findEstablishmentByFullCnpj(
+    basicCnpj: string,
+    cnpjOrder: string,
+    cnpjDv: string
+  ): Promise<EstablishmentModel | null> {
+    const normalizedBasicCnpj = basicCnpj.replaceAll(/\D/g, '')
+    const normalizedCnpjOrder = cnpjOrder.replaceAll(/\D/g, '')
+    const normalizedCnpjDv = cnpjDv.replaceAll(/\D/g, '')
+    return (
+      this.establishmentItems.find(
+        item =>
+          item.basic_cnpj === normalizedBasicCnpj &&
+          item.cnpj_order === normalizedCnpjOrder &&
+          item.cnpj_dv === normalizedCnpjDv
+      ) ?? null
+    )
+  }
+
+  async findEstablishmentsByBasicCnpj(
+    basicCnpj: string
+  ): Promise<EstablishmentModel[]> {
+    const normalizedCnpj = basicCnpj.replaceAll(/\D/g, '')
+    return this.establishmentItems.filter(
+      item => item.basic_cnpj === normalizedCnpj
+    )
+  }
+
+  async findAllEstablishments(): Promise<EstablishmentModel[]> {
+    return this.establishmentItems.filter(item => !item.isDeleted)
+  }
+
+  async createEstablishment(
+    establishment: EstablishmentModel
+  ): Promise<EstablishmentModel> {
+    this.establishmentItems.push(establishment)
+    return establishment
+  }
+
+  async bulkEstablishmentInsert(
+    establishments: EstablishmentModel[]
+  ): Promise<number> {
+    this.establishmentItems.push(...establishments)
+    return establishments.length
+  }
+
+  clearEstablishments(): void {
+    this.establishmentItems.length = 0
+  }
+
+  getEstablishmentItems(): EstablishmentModel[] {
+    return [...this.establishmentItems]
   }
 }
