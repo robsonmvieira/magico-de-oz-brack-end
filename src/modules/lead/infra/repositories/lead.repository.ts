@@ -34,6 +34,10 @@ import {
   LeadSituationChangeReasonModel,
   LeadSituationChangeReasonSchema
 } from '@modules/lead/domain/models/lead-situation-change-reason.model'
+import {
+  MunicipalityModel,
+  MunicipalitySchema
+} from '@modules/lead/domain/models/municipality.model'
 import { Pool } from 'pg'
 import { pipeline } from 'node:stream/promises'
 import { from as copyFrom } from 'pg-copy-streams'
@@ -52,6 +56,7 @@ export class LeadRepository
   private readonly establishmentTable = EstablishmentSchema
   private readonly leadSituationChangeReasonTable =
     LeadSituationChangeReasonSchema
+  private readonly municipalityTable = MunicipalitySchema
 
   constructor(
     @Inject(DRIZZLE) db: DrizzleDB,
@@ -520,5 +525,45 @@ export class LeadRepository
   ): Promise<number> {
     await this.db.insert(this.leadSituationChangeReasonTable).values(reasons)
     return reasons.length
+  }
+
+  // Municipality methods
+  async findMunicipalityByCode(
+    code: string
+  ): Promise<MunicipalityModel | null> {
+    const result = await this.db
+      .select()
+      .from(this.municipalityTable)
+      .where(eq(this.municipalityTable.code, code))
+      .limit(1)
+
+    return result[0] || null
+  }
+
+  async findAllMunicipalities(): Promise<MunicipalityModel[]> {
+    const result = await this.db
+      .select()
+      .from(this.municipalityTable)
+      .where(eq(this.municipalityTable.isDeleted, false))
+
+    return result
+  }
+
+  async createMunicipality(
+    municipality: MunicipalityModel
+  ): Promise<MunicipalityModel> {
+    const result = await this.db
+      .insert(this.municipalityTable)
+      .values(municipality)
+      .returning()
+
+    return result[0]
+  }
+
+  async bulkMunicipalityInsert(
+    municipalities: MunicipalityModel[]
+  ): Promise<number> {
+    await this.db.insert(this.municipalityTable).values(municipalities)
+    return municipalities.length
   }
 }
