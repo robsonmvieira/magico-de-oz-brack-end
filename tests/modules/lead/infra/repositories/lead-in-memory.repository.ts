@@ -1,6 +1,7 @@
 import { LeadModel, NewLeadModel } from '@modules/lead/domain/models'
 import { SimpleModel } from '@modules/lead/domain/models/simple.model'
 import { PartnerModel } from '@modules/lead/domain/models/partner.model'
+import { CountryModel } from '@modules/lead/domain/models/country.model'
 import { ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
@@ -9,6 +10,7 @@ export class LeadInMemoryRepository implements ILeadRepository {
   private items: LeadModel[] = []
   private readonly simpleItems: SimpleModel[] = []
   private readonly partnerItems: PartnerModel[] = []
+  private readonly countryItems: CountryModel[] = []
 
   async save(entity: NewLeadModel): Promise<void> {
     const now = new Date()
@@ -205,6 +207,25 @@ export class LeadInMemoryRepository implements ILeadRepository {
     return partners.length
   }
 
+  // Country module methods
+  async findCountryByCode(code: string): Promise<CountryModel | null> {
+    return this.countryItems.find(item => item.code === code) ?? null
+  }
+
+  async findAllCountries(): Promise<CountryModel[]> {
+    return this.countryItems.filter(item => !item.isDeleted)
+  }
+
+  async createCountry(country: CountryModel): Promise<CountryModel> {
+    this.countryItems.push(country)
+    return country
+  }
+
+  async bulkCountryInsert(countries: CountryModel[]): Promise<number> {
+    this.countryItems.push(...countries)
+    return countries.length
+  }
+
   // Métodos auxiliares para testes
   clear(): void {
     this.items = []
@@ -228,5 +249,13 @@ export class LeadInMemoryRepository implements ILeadRepository {
 
   getPartnerItems(): PartnerModel[] {
     return [...this.partnerItems]
+  }
+
+  clearCountries(): void {
+    this.countryItems.length = 0
+  }
+
+  getCountryItems(): CountryModel[] {
+    return [...this.countryItems]
   }
 }
