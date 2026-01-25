@@ -72,7 +72,11 @@ const createMockLeadRepository = (): jest.Mocked<ILeadRepository> => ({
   findLegalNatureByCode: jest.fn(),
   findAllLegalNatures: jest.fn(),
   createLegalNature: jest.fn(),
-  bulkLegalNatureInsert: jest.fn()
+  bulkLegalNatureInsert: jest.fn(),
+  findCnaeByCode: jest.fn(),
+  findAllCnaes: jest.fn(),
+  createCnae: jest.fn(),
+  bulkCnaeInsert: jest.fn()
 })
 
 const createMockUnitOfWork = (): jest.Mocked<IUnitOfWork<any>> => ({

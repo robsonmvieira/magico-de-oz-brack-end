@@ -5,6 +5,7 @@ import { SimpleModel } from '../models/simple.model'
 import { PartnerModel } from '../models/partner.model'
 import { CountryModel } from '../models/country.model'
 import { LegalNatureModel } from '../models/legal-nature.model'
+import { CnaeModel } from '../models/cnae.model'
 
 export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   // Busca por campos únicos
@@ -58,4 +59,10 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   findAllLegalNatures(): Promise<LegalNatureModel[]>
   createLegalNature(legalNature: LegalNatureModel): Promise<LegalNatureModel>
   bulkLegalNatureInsert(legalNatures: LegalNatureModel[]): Promise<number>
+
+  // cnae module
+  findCnaeByCode(code: string): Promise<CnaeModel | null>
+  findAllCnaes(): Promise<CnaeModel[]>
+  createCnae(cnae: CnaeModel): Promise<CnaeModel>
+  bulkCnaeInsert(cnaes: CnaeModel[]): Promise<number>
 }
