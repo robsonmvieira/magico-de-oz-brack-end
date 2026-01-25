@@ -10,6 +10,7 @@ import { CompanyModel } from '../models/company.model'
 import { EstablishmentModel } from '../models/establishment.model'
 import { LeadSituationChangeReasonModel } from '../models/lead-situation-change-reason.model'
 import { MunicipalityModel } from '../models/municipality.model'
+import { LeadPartnerQualificationModel } from '../models/lead-partner-qualification.model'
 
 export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   // Busca por campos únicos
@@ -110,4 +111,16 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
     municipality: MunicipalityModel
   ): Promise<MunicipalityModel>
   bulkMunicipalityInsert(municipalities: MunicipalityModel[]): Promise<number>
+
+  // lead partner qualification module
+  findLeadPartnerQualificationByCode(
+    code: string
+  ): Promise<LeadPartnerQualificationModel | null>
+  findAllLeadPartnerQualifications(): Promise<LeadPartnerQualificationModel[]>
+  createLeadPartnerQualification(
+    qualification: LeadPartnerQualificationModel
+  ): Promise<LeadPartnerQualificationModel>
+  bulkLeadPartnerQualificationInsert(
+    qualifications: LeadPartnerQualificationModel[]
+  ): Promise<number>
 }

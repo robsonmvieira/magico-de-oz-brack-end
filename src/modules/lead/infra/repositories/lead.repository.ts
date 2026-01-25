@@ -38,6 +38,10 @@ import {
   MunicipalityModel,
   MunicipalitySchema
 } from '@modules/lead/domain/models/municipality.model'
+import {
+  LeadPartnerQualificationModel,
+  LeadPartnerQualificationSchema
+} from '@modules/lead/domain/models/lead-partner-qualification.model'
 import { Pool } from 'pg'
 import { pipeline } from 'node:stream/promises'
 import { from as copyFrom } from 'pg-copy-streams'
@@ -57,6 +61,8 @@ export class LeadRepository
   private readonly leadSituationChangeReasonTable =
     LeadSituationChangeReasonSchema
   private readonly municipalityTable = MunicipalitySchema
+  private readonly leadPartnerQualificationTable =
+    LeadPartnerQualificationSchema
 
   constructor(
     @Inject(DRIZZLE) db: DrizzleDB,
@@ -565,5 +571,49 @@ export class LeadRepository
   ): Promise<number> {
     await this.db.insert(this.municipalityTable).values(municipalities)
     return municipalities.length
+  }
+
+  // Lead Partner Qualification methods
+  async findLeadPartnerQualificationByCode(
+    code: string
+  ): Promise<LeadPartnerQualificationModel | null> {
+    const result = await this.db
+      .select()
+      .from(this.leadPartnerQualificationTable)
+      .where(eq(this.leadPartnerQualificationTable.code, code))
+      .limit(1)
+
+    return result[0] || null
+  }
+
+  async findAllLeadPartnerQualifications(): Promise<
+    LeadPartnerQualificationModel[]
+  > {
+    const result = await this.db
+      .select()
+      .from(this.leadPartnerQualificationTable)
+      .where(eq(this.leadPartnerQualificationTable.isDeleted, false))
+
+    return result
+  }
+
+  async createLeadPartnerQualification(
+    qualification: LeadPartnerQualificationModel
+  ): Promise<LeadPartnerQualificationModel> {
+    const result = await this.db
+      .insert(this.leadPartnerQualificationTable)
+      .values(qualification)
+      .returning()
+
+    return result[0]
+  }
+
+  async bulkLeadPartnerQualificationInsert(
+    qualifications: LeadPartnerQualificationModel[]
+  ): Promise<number> {
+    await this.db
+      .insert(this.leadPartnerQualificationTable)
+      .values(qualifications)
+    return qualifications.length
   }
 }
