@@ -171,7 +171,7 @@ export class LeadSituationChangeReasonImportProcessor {
   private transformLine(line: string, delimiter: string): string | null {
     const parts = line
       .split(delimiter)
-      .map(part => part.replace(/"/g, '').trim())
+      .map(part => part.replaceAll('"', '').trim())
 
     if (parts.length < 2) {
       return null
@@ -188,7 +188,22 @@ export class LeadSituationChangeReasonImportProcessor {
     const id = randomUUID()
     const now = new Date().toISOString()
 
-    return [id, code, description, now, now, 'false', 'true', 'false'].join(',')
+    // Escape value for PostgreSQL COPY CSV format
+    const escapeCsv = (val: string) =>
+      val.includes(',') || val.includes('"')
+        ? `"${val.replaceAll('"', '""')}"`
+        : val
+
+    return [
+      id,
+      code,
+      escapeCsv(description),
+      now,
+      now,
+      'false',
+      'true',
+      'false'
+    ].join(',')
   }
 
   @OnQueueCompleted()

@@ -195,7 +195,7 @@ export class SimpleImportProcessor {
   private transformLine(line: string, delimiter: string): string | null {
     const parts = line
       .split(delimiter)
-      .map(part => part.replace(/"/g, '').trim())
+      .map(part => part.replaceAll('"', '').trim())
 
     if (parts.length < 4) {
       return null
@@ -217,7 +217,7 @@ export class SimpleImportProcessor {
     }
 
     const id = randomUUID()
-    const cleanBasicDoc = basicDoc.replace(/\D/g, '')
+    const cleanBasicDoc = basicDoc.replaceAll(/\D/g, '')
     const chooseSimple = this.parseOptionStatus(chooseSimpleModule)
     const dateSimpleStart = this.formatDate(dateSimpleModuleStartStr)
     const dateSimpleExclude = this.formatDate(dateExcludeSimpleModuleStartStr)

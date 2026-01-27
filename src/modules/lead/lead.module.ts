@@ -50,7 +50,8 @@ import {
   MunicipalityImportProcessor,
   MUNICIPALITY_IMPORT_QUEUE,
   LeadPartnerQualificationImportProcessor,
-  LEAD_PARTNER_QUALIFICATION_IMPORT_QUEUE
+  LEAD_PARTNER_QUALIFICATION_IMPORT_QUEUE,
+  FolderWatcherService
 } from './infra/queues'
 import { EnvModule, EnvService } from '@modules/env'
 
@@ -124,7 +125,8 @@ import { EnvModule, EnvService } from '@modules/env'
     MunicipalityImportProcessor,
     ...Object.values(MUNICIPALITY_PROVIDERS.USE_CASES_PROVIDERS),
     LeadPartnerQualificationImportProcessor,
-    ...Object.values(LEAD_PARTNER_QUALIFICATION_PROVIDERS.USE_CASES_PROVIDERS)
+    ...Object.values(LEAD_PARTNER_QUALIFICATION_PROVIDERS.USE_CASES_PROVIDERS),
+    FolderWatcherService
   ]
 })
 export class LeadModule {}

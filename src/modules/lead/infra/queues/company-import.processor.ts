@@ -164,9 +164,8 @@ export class CompanyImportProcessor {
   }
 
   private transformLine(line: string, delimiter: string): string | null {
-    const parts = line
-      .split(delimiter)
-      .map(part => part.replace(/"/g, '').trim())
+    // Parse CSV respecting quoted fields that may contain the delimiter
+    const parts = this.parseCsvLine(line, delimiter)
 
     if (parts.length < 6) {
       return null
@@ -195,10 +194,13 @@ export class CompanyImportProcessor {
     // Escape CSV values that might contain commas
     const escapeCsvValue = (value: string): string => {
       if (value.includes(',') || value.includes('"')) {
-        return `"${value.replace(/"/g, '""')}"`
+        return `"${value.replaceAll('"', '""')}"`
       }
       return value
     }
+
+    // Convert Brazilian decimal format (2000,00) to standard format (2000.00)
+    const normalizedSocialCapital = (socialCapital || '0').replaceAll(',', '.')
 
     return [
       id,
@@ -206,15 +208,35 @@ export class CompanyImportProcessor {
       escapeCsvValue(companyName),
       legalNatureCode || '',
       responsibleQualification || '',
-      socialCapital || '0',
+      normalizedSocialCapital,
       companySize || '00',
-      federativeEntity || '',
+      escapeCsvValue(federativeEntity || ''),
       now,
       now,
       'false',
       'true',
       'false'
     ].join(',')
+  }
+
+  private parseCsvLine(line: string, delimiter: string): string[] {
+    const result: string[] = []
+    let current = ''
+    let inQuotes = false
+
+    for (const char of line) {
+      if (char === '"') {
+        inQuotes = !inQuotes
+      } else if (char === delimiter && !inQuotes) {
+        result.push(current.trim())
+        current = ''
+      } else {
+        current += char
+      }
+    }
+
+    result.push(current.trim())
+    return result
   }
 
   @OnQueueCompleted()

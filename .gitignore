@@ -44,4 +44,4 @@ lerna-debug.log*
 .history
 .postgres_data_test
 CLAUDE.md
-.claude
+.claudebackups/

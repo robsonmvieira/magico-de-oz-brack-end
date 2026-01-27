@@ -206,3 +206,12 @@ export class PartnerEntity extends Entity {
     }
   }
 }
+
+/*
+
+ part 00 - K3241.K03200Y0.D60110.SOCIOCSV uploaded -> in progress -> completed
+ part 01 - K3241.K03200Y1.D60110.SOCIOCSV uploaded -> in progress -> completed
+ part 02 - K3241.K03200Y2.D60110.SOCIOCSV uploaded -> in progress -> completed
+ part 03 - K3241.K03200Y3.D60110.SOCIOCSV uploaded -> in progress -> completed
+ part 04 - K3241.K03200Y4.D60110.SOCIOCSV uploaded -> in progress
+ */
