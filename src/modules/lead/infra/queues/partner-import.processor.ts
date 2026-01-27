@@ -167,7 +167,7 @@ export class PartnerImportProcessor {
   private transformLine(line: string, delimiter: string): string | null {
     const parts = line
       .split(delimiter)
-      .map(part => part.replace(/"/g, '').trim())
+      .map(part => part.replaceAll('"', '').trim())
 
     if (parts.length < 4) {
       return null
@@ -193,21 +193,27 @@ export class PartnerImportProcessor {
     }
 
     const id = randomUUID()
-    const cleanBasicCnpj = basicCnpj.replace(/\D/g, '')
+    const cleanBasicCnpj = basicCnpj.replaceAll(/\D/g, '')
     const entryDate = this.formatDate(entryDateStr)
     const now = new Date().toISOString()
+
+    // Escape value for PostgreSQL COPY CSV format
+    const escapeCsv = (val: string) =>
+      val.includes(',') || val.includes('"')
+        ? `"${val.replaceAll('"', '""')}"`
+        : val
 
     return [
       id,
       cleanBasicCnpj,
       partnerIdentifier || '',
-      partnerName || '',
+      escapeCsv(partnerName || ''),
       partnerDoc || '',
       partnerQualification || '',
       entryDate,
       countryCode || '',
       legalRepresentativeDoc || '',
-      legalRepresentativeName || '',
+      escapeCsv(legalRepresentativeName || ''),
       legalRepresentativeQualification || '',
       ageRange || '',
       now,

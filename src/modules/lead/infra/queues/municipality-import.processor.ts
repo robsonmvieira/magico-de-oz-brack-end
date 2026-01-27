@@ -166,7 +166,7 @@ export class MunicipalityImportProcessor {
   private transformLine(line: string, delimiter: string): string | null {
     const parts = line
       .split(delimiter)
-      .map(part => part.replace(/"/g, '').trim())
+      .map(part => part.replaceAll('"', '').trim())
 
     if (parts.length < 2) {
       return null
@@ -183,7 +183,15 @@ export class MunicipalityImportProcessor {
     const id = randomUUID()
     const now = new Date().toISOString()
 
-    return [id, code, name, now, now, 'false', 'true', 'false'].join(',')
+    // Escape value for PostgreSQL COPY CSV format
+    const escapeCsv = (val: string) =>
+      val.includes(',') || val.includes('"')
+        ? `"${val.replaceAll('"', '""')}"`
+        : val
+
+    return [id, code, escapeCsv(name), now, now, 'false', 'true', 'false'].join(
+      ','
+    )
   }
 
   @OnQueueCompleted()
