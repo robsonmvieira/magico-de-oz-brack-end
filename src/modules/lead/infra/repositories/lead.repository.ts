@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, ilike } from 'drizzle-orm'
 import { DrizzleRepository } from '@modules/shared/infra/repositories'
 import { DRIZZLE, DrizzleDB, PG_POOL } from '@modules/database'
-import { ILeadRepository } from '@modules/lead/domain/repositories'
+import { CnpjRawData, ILeadRepository } from '@modules/lead/domain/repositories'
 import { LeadSchema, LeadModel } from '@modules/lead/domain/models'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import {
@@ -208,6 +208,171 @@ export class LeadRepository
     )
 
     return found || null
+  }
+
+  async findByCnpjRaw(cnpj: string): Promise<CnpjRawData | null> {
+    const normalizedCnpj = cnpj.replaceAll(/\D/g, '')
+
+    // Buscar estabelecimento com dados da empresa, município e país
+    const establishmentResult = await this.db
+      .select({
+        // Identificação CNPJ
+        basicCnpj: this.establishmentTable.basic_cnpj,
+        cnpjOrder: this.establishmentTable.cnpj_order,
+        cnpjDv: this.establishmentTable.cnpj_dv,
+
+        // Dados da Empresa
+        companyName: this.companyTable.company_name,
+        legalNatureCode: this.companyTable.legal_nature_code,
+        socialCapital: this.companyTable.social_capital,
+        companySize: this.companyTable.company_size,
+
+        // Dados do Estabelecimento
+        tradeName: this.establishmentTable.trade_name,
+        registrationStatus: this.establishmentTable.registration_status,
+        activityStartDate: this.establishmentTable.activity_start_date,
+        mainCnae: this.establishmentTable.main_cnae,
+
+        // Contato
+        ddd1: this.establishmentTable.ddd1,
+        phone1: this.establishmentTable.phone1,
+        email: this.establishmentTable.email,
+
+        // Endereço
+        streetType: this.establishmentTable.street_type,
+        street: this.establishmentTable.street,
+        number: this.establishmentTable.number,
+        complement: this.establishmentTable.complement,
+        neighborhood: this.establishmentTable.neighborhood,
+        zipCode: this.establishmentTable.zip_code,
+        state: this.establishmentTable.state,
+        cityCode: this.establishmentTable.city_code,
+        countryCode: this.establishmentTable.country_code
+      })
+      .from(this.establishmentTable)
+      .innerJoin(
+        this.companyTable,
+        eq(this.companyTable.basic_cnpj, this.establishmentTable.basic_cnpj)
+      )
+      .where(eq(this.establishmentTable.basic_cnpj, normalizedCnpj))
+      .limit(1)
+
+    if (establishmentResult.length === 0) {
+      return null
+    }
+
+    const establishment = establishmentResult[0]
+
+    // Buscar nome do município
+    let cityName: string | null = null
+    if (establishment.cityCode) {
+      const municipality = await this.db
+        .select({ name: this.municipalityTable.name })
+        .from(this.municipalityTable)
+        .where(eq(this.municipalityTable.code, establishment.cityCode))
+        .limit(1)
+
+      cityName = municipality[0]?.name ?? null
+    }
+
+    // Buscar nome do país
+    let countryName: string | null = null
+    if (establishment.countryCode) {
+      const country = await this.db
+        .select({ name: this.countryTable.name })
+        .from(this.countryTable)
+        .where(eq(this.countryTable.code, establishment.countryCode))
+        .limit(1)
+
+      countryName = country[0]?.name ?? null
+    }
+
+    // Buscar sócios
+    const partnersResult = await this.db
+      .select({
+        name: this.partnerTable.partner_name,
+        doc: this.partnerTable.partner_doc,
+        qualification: this.partnerTable.partner_qualification
+      })
+      .from(this.partnerTable)
+      .where(eq(this.partnerTable.basic_cnpj, normalizedCnpj))
+
+    // Montar telefone completo
+    const phone =
+      establishment.ddd1 && establishment.phone1
+        ? `${establishment.ddd1}${establishment.phone1}`
+        : null
+
+    // Montar rua completa
+    const street =
+      establishment.streetType && establishment.street
+        ? `${establishment.streetType} ${establishment.street}`
+        : establishment.street
+
+    return {
+      basicCnpj: establishment.basicCnpj,
+      cnpjOrder: establishment.cnpjOrder,
+      cnpjDv: establishment.cnpjDv,
+      companyName: establishment.companyName,
+      legalNatureCode: establishment.legalNatureCode,
+      socialCapital: establishment.socialCapital,
+      companySize: establishment.companySize,
+      tradeName: establishment.tradeName,
+      registrationStatus: establishment.registrationStatus,
+      activityStartDate: establishment.activityStartDate,
+      mainCnae: establishment.mainCnae,
+      phone,
+      email: establishment.email,
+      street,
+      number: establishment.number,
+      complement: establishment.complement,
+      neighborhood: establishment.neighborhood,
+      zipCode: establishment.zipCode,
+      state: establishment.state,
+      cityCode: establishment.cityCode,
+      cityName,
+      countryCode: establishment.countryCode,
+      countryName,
+      partners: partnersResult.map(p => ({
+        name: p.name,
+        doc: p.doc,
+        qualification: p.qualification
+      }))
+    }
+  }
+
+  async findByCompanyNameRaw(
+    companyName: string,
+    limit: number = 50
+  ): Promise<CnpjRawData[]> {
+    // Buscar empresas pelo nome (ILIKE para busca case-insensitive parcial)
+    const companiesResult = await this.db
+      .select({
+        basicCnpj: this.companyTable.basic_cnpj,
+        companyName: this.companyTable.company_name,
+        legalNatureCode: this.companyTable.legal_nature_code,
+        socialCapital: this.companyTable.social_capital,
+        companySize: this.companyTable.company_size
+      })
+      .from(this.companyTable)
+      .where(ilike(this.companyTable.company_name, `%${companyName}%`))
+      .limit(limit)
+
+    if (companiesResult.length === 0) {
+      return []
+    }
+
+    // Para cada empresa encontrada, buscar dados completos usando findByCnpjRaw
+    const results: CnpjRawData[] = []
+
+    for (const company of companiesResult) {
+      const fullData = await this.findByCnpjRaw(company.basicCnpj)
+      if (fullData) {
+        results.push(fullData)
+      }
+    }
+
+    return results
   }
 
   async exists(id: string): Promise<boolean> {

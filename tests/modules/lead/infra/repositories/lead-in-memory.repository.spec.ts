@@ -342,6 +342,508 @@ describe('LeadInMemoryRepository', () => {
     })
   })
 
+  describe('findByCnpjRaw', () => {
+    it('should return full company data by CNPJ', async () => {
+      const basicCnpj = '12345678'
+
+      // Setup establishment
+      await repository.createEstablishment({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        cnpj_order: '0001',
+        cnpj_dv: '90',
+        trade_name: 'Empresa ABC',
+        branch_type: 'matriz',
+        registration_status: 'ativa',
+        main_cnae: '6201500',
+        activity_start_date: '2020-01-15',
+        ddd1: '11',
+        phone1: '987654321',
+        email: 'contato@empresa.com',
+        street_type: 'Rua',
+        street: 'das Flores',
+        number: '123',
+        complement: 'Sala 1',
+        neighborhood: 'Centro',
+        zip_code: '01234567',
+        state: 'SP',
+        city_code: '3550308',
+        country_code: '105',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      // Setup company
+      await repository.createCompany({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        company_name: 'Empresa ABC LTDA',
+        legal_nature_code: '2062',
+        responsible_qualification: '05',
+        social_capital: '100000',
+        company_size: 'ME',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      // Setup partner
+      await repository.createPartner({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        partner_name: 'João Silva',
+        partner_doc: '12345678901',
+        partner_qualification: '49',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      // Setup municipality
+      await repository.createMunicipality({
+        id: randomUUID(),
+        code: '3550308',
+        name: 'São Paulo',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      // Setup country
+      await repository.createCountry({
+        id: randomUUID(),
+        code: '105',
+        name: 'Brasil',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      const result = await repository.findByCnpjRaw(basicCnpj)
+
+      expect(result).not.toBeNull()
+      expect(result!.basicCnpj).toBe(basicCnpj)
+      expect(result!.cnpjOrder).toBe('0001')
+      expect(result!.cnpjDv).toBe('90')
+      expect(result!.companyName).toBe('Empresa ABC LTDA')
+      expect(result!.legalNatureCode).toBe('2062')
+      expect(result!.socialCapital).toBe('100000')
+      expect(result!.companySize).toBe('ME')
+      expect(result!.tradeName).toBe('Empresa ABC')
+      expect(result!.registrationStatus).toBe('ativa')
+      expect(result!.activityStartDate).toBe('2020-01-15')
+      expect(result!.mainCnae).toBe('6201500')
+      expect(result!.phone).toBe('11987654321')
+      expect(result!.email).toBe('contato@empresa.com')
+      expect(result!.street).toBe('Rua das Flores')
+      expect(result!.number).toBe('123')
+      expect(result!.complement).toBe('Sala 1')
+      expect(result!.neighborhood).toBe('Centro')
+      expect(result!.zipCode).toBe('01234567')
+      expect(result!.state).toBe('SP')
+      expect(result!.cityCode).toBe('3550308')
+      expect(result!.cityName).toBe('São Paulo')
+      expect(result!.countryCode).toBe('105')
+      expect(result!.countryName).toBe('Brasil')
+      expect(result!.partners).toHaveLength(1)
+      expect(result!.partners[0].name).toBe('João Silva')
+      expect(result!.partners[0].doc).toBe('12345678901')
+      expect(result!.partners[0].qualification).toBe('49')
+    })
+
+    it('should return multiple partners in partners array', async () => {
+      const basicCnpj = '87654321'
+
+      await repository.createEstablishment({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        cnpj_order: '0001',
+        cnpj_dv: '10',
+        trade_name: 'Empresa XYZ',
+        branch_type: 'matriz',
+        registration_status: 'ativa',
+        main_cnae: '6201500',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      await repository.createCompany({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        company_name: 'Empresa XYZ LTDA',
+        legal_nature_code: '2062',
+        responsible_qualification: '05',
+        social_capital: '50000',
+        company_size: 'ME',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      await repository.createPartner({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        partner_name: 'Maria Santos',
+        partner_doc: '11111111111',
+        partner_qualification: '49',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      await repository.createPartner({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        partner_name: 'Pedro Oliveira',
+        partner_doc: '22222222222',
+        partner_qualification: '22',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      const result = await repository.findByCnpjRaw(basicCnpj)
+
+      expect(result).not.toBeNull()
+      expect(result!.partners).toHaveLength(2)
+      expect(result!.partners.map(p => p.name)).toContain('Maria Santos')
+      expect(result!.partners.map(p => p.name)).toContain('Pedro Oliveira')
+    })
+
+    it('should normalize CNPJ removing non-digits', async () => {
+      const basicCnpj = '33581425'
+
+      await repository.createEstablishment({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        cnpj_order: '0001',
+        cnpj_dv: '79',
+        trade_name: 'Test Company',
+        branch_type: 'matriz',
+        registration_status: 'ativa',
+        main_cnae: '6201500',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      await repository.createCompany({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        company_name: 'Test Company LTDA',
+        legal_nature_code: '2062',
+        responsible_qualification: '05',
+        social_capital: '200000',
+        company_size: 'EPP',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      const result = await repository.findByCnpjRaw('335.814.25')
+
+      expect(result).not.toBeNull()
+      expect(result!.basicCnpj).toBe(basicCnpj)
+    })
+
+    it('should return null if CNPJ not found', async () => {
+      const result = await repository.findByCnpjRaw('00000000')
+
+      expect(result).toBeNull()
+    })
+
+    it('should return null if no company exists', async () => {
+      const basicCnpj = '11111111'
+
+      await repository.createEstablishment({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        cnpj_order: '0001',
+        cnpj_dv: '00',
+        trade_name: 'Orphan Establishment',
+        branch_type: 'matriz',
+        registration_status: 'ativa',
+        main_cnae: '6201500',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      const result = await repository.findByCnpjRaw(basicCnpj)
+
+      expect(result).toBeNull()
+    })
+
+    it('should return data even without partners', async () => {
+      const basicCnpj = '99999999'
+
+      await repository.createEstablishment({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        cnpj_order: '0001',
+        cnpj_dv: '00',
+        trade_name: 'No Partners Company',
+        branch_type: 'matriz',
+        registration_status: 'ativa',
+        main_cnae: '6201500',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      await repository.createCompany({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        company_name: 'No Partners LTDA',
+        legal_nature_code: '2062',
+        responsible_qualification: '05',
+        social_capital: '10000',
+        company_size: 'ME',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      const result = await repository.findByCnpjRaw(basicCnpj)
+
+      expect(result).not.toBeNull()
+      expect(result!.companyName).toBe('No Partners LTDA')
+      expect(result!.partners).toHaveLength(0)
+    })
+  })
+
+  describe('findByCompanyNameRaw', () => {
+    it('should find companies by partial name match', async () => {
+      const basicCnpj = '12345678'
+
+      await repository.createEstablishment({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        cnpj_order: '0001',
+        cnpj_dv: '90',
+        trade_name: 'Tech Solutions',
+        branch_type: 'matriz',
+        registration_status: 'ativa',
+        main_cnae: '6201500',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      await repository.createCompany({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        company_name: 'R MAIA SOLUTION LTDA',
+        legal_nature_code: '2062',
+        responsible_qualification: '05',
+        social_capital: '100000',
+        company_size: 'ME',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      const result = await repository.findByCompanyNameRaw('maia')
+
+      expect(result).toHaveLength(1)
+      expect(result[0].companyName).toBe('R MAIA SOLUTION LTDA')
+    })
+
+    it('should be case-insensitive', async () => {
+      const basicCnpj = '87654321'
+
+      await repository.createEstablishment({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        cnpj_order: '0001',
+        cnpj_dv: '10',
+        trade_name: 'Acme Corp',
+        branch_type: 'matriz',
+        registration_status: 'ativa',
+        main_cnae: '6201500',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      await repository.createCompany({
+        id: randomUUID(),
+        basic_cnpj: basicCnpj,
+        company_name: 'ACME CORPORATION LTDA',
+        legal_nature_code: '2062',
+        responsible_qualification: '05',
+        social_capital: '50000',
+        company_size: 'ME',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      const result = await repository.findByCompanyNameRaw('acme')
+
+      expect(result).toHaveLength(1)
+      expect(result[0].companyName).toBe('ACME CORPORATION LTDA')
+    })
+
+    it('should return multiple matches', async () => {
+      // Company 1
+      await repository.createEstablishment({
+        id: randomUUID(),
+        basic_cnpj: '11111111',
+        cnpj_order: '0001',
+        cnpj_dv: '00',
+        trade_name: 'Tech 1',
+        branch_type: 'matriz',
+        registration_status: 'ativa',
+        main_cnae: '6201500',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      await repository.createCompany({
+        id: randomUUID(),
+        basic_cnpj: '11111111',
+        company_name: 'TECNOLOGIA ALPHA LTDA',
+        legal_nature_code: '2062',
+        responsible_qualification: '05',
+        social_capital: '100000',
+        company_size: 'ME',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      // Company 2
+      await repository.createEstablishment({
+        id: randomUUID(),
+        basic_cnpj: '22222222',
+        cnpj_order: '0001',
+        cnpj_dv: '00',
+        trade_name: 'Tech 2',
+        branch_type: 'matriz',
+        registration_status: 'ativa',
+        main_cnae: '6201500',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      await repository.createCompany({
+        id: randomUUID(),
+        basic_cnpj: '22222222',
+        company_name: 'TECNOLOGIA BETA LTDA',
+        legal_nature_code: '2062',
+        responsible_qualification: '05',
+        social_capital: '200000',
+        company_size: 'EPP',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        isActive: true,
+        isBlocked: false
+      })
+
+      const result = await repository.findByCompanyNameRaw('tecnologia')
+
+      expect(result).toHaveLength(2)
+      expect(result.map(r => r.companyName)).toContain('TECNOLOGIA ALPHA LTDA')
+      expect(result.map(r => r.companyName)).toContain('TECNOLOGIA BETA LTDA')
+    })
+
+    it('should respect limit parameter', async () => {
+      // Create 3 companies
+      for (let i = 1; i <= 3; i++) {
+        const basicCnpj = `${i}${i}${i}${i}${i}${i}${i}${i}`
+
+        await repository.createEstablishment({
+          id: randomUUID(),
+          basic_cnpj: basicCnpj,
+          cnpj_order: '0001',
+          cnpj_dv: '00',
+          trade_name: `Software ${i}`,
+          branch_type: 'matriz',
+          registration_status: 'ativa',
+          main_cnae: '6201500',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isDeleted: false,
+          isActive: true,
+          isBlocked: false
+        })
+
+        await repository.createCompany({
+          id: randomUUID(),
+          basic_cnpj: basicCnpj,
+          company_name: `SOFTWARE HOUSE ${i} LTDA`,
+          legal_nature_code: '2062',
+          responsible_qualification: '05',
+          social_capital: '100000',
+          company_size: 'ME',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isDeleted: false,
+          isActive: true,
+          isBlocked: false
+        })
+      }
+
+      const result = await repository.findByCompanyNameRaw('software', 2)
+
+      expect(result).toHaveLength(2)
+    })
+
+    it('should return empty array if no match found', async () => {
+      const result = await repository.findByCompanyNameRaw('xyz123notfound')
+
+      expect(result).toHaveLength(0)
+    })
+  })
+
   describe('exists', () => {
     it('should return true if lead exists', async () => {
       const lead = createValidLead()

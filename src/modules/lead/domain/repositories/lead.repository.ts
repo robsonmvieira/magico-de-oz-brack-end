@@ -12,6 +12,50 @@ import { LeadSituationChangeReasonModel } from '../models/lead-situation-change-
 import { MunicipalityModel } from '../models/municipality.model'
 import { LeadPartnerQualificationModel } from '../models/lead-partner-qualification.model'
 
+export interface CnpjRawPartner {
+  name: string | null
+  doc: string | null
+  qualification: string | null
+}
+
+export interface CnpjRawData {
+  // Identificação CNPJ
+  basicCnpj: string
+  cnpjOrder: string
+  cnpjDv: string
+
+  // Dados da Empresa (companies)
+  companyName: string
+  legalNatureCode: string
+  socialCapital: string
+  companySize: string
+
+  // Dados do Estabelecimento (establishments)
+  tradeName: string | null
+  registrationStatus: string
+  activityStartDate: string | null
+  mainCnae: string
+
+  // Contato
+  phone: string | null
+  email: string | null
+
+  // Endereço
+  street: string | null
+  number: string | null
+  complement: string | null
+  neighborhood: string | null
+  zipCode: string | null
+  state: string | null
+  cityCode: string | null
+  cityName: string | null
+  countryCode: string | null
+  countryName: string | null
+
+  // Sócios
+  partners: CnpjRawPartner[]
+}
+
 export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
   // Busca por campos únicos
   findByCompanyName(companyName: string): Promise<LeadModel | null>
@@ -33,6 +77,13 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
 
   // Busca por CNPJ
   findByCnpj(cnpj: string): Promise<LeadModel | null>
+  findByCnpjRaw(cnpj: string): Promise<CnpjRawData | null>
+
+  // Busca por nome da empresa nas tabelas raw da Receita
+  findByCompanyNameRaw(
+    companyName: string,
+    limit?: number
+  ): Promise<CnpjRawData[]>
 
   // Verificações de existência
   exists(id: string): Promise<boolean>

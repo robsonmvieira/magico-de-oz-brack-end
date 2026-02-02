@@ -9,7 +9,11 @@ import { EstablishmentModel } from '@modules/lead/domain/models/establishment.mo
 import { LeadSituationChangeReasonModel } from '@modules/lead/domain/models/lead-situation-change-reason.model'
 import { MunicipalityModel } from '@modules/lead/domain/models/municipality.model'
 import { LeadPartnerQualificationModel } from '@modules/lead/domain/models/lead-partner-qualification.model'
-import { ILeadRepository } from '@modules/lead/domain/repositories'
+import {
+  CnpjRawData,
+  CnpjRawPartner,
+  ILeadRepository
+} from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
 
@@ -144,6 +148,109 @@ export class LeadInMemoryRepository implements ILeadRepository {
           item.cnpjWsData?.cnpj?.replace(/\D/g, '') === normalizedCnpj
       ) ?? null
     )
+  }
+
+  async findByCnpjRaw(cnpj: string): Promise<CnpjRawData | null> {
+    const normalizedCnpj = cnpj.replace(/\D/g, '')
+
+    const establishment = this.establishmentItems.find(
+      est => est.basic_cnpj === normalizedCnpj
+    )
+
+    const company = this.companyItems.find(
+      comp => comp.basic_cnpj === normalizedCnpj
+    )
+
+    if (!company || !establishment) {
+      return null
+    }
+
+    const partners = this.partnerItems.filter(
+      partner => partner.basic_cnpj === normalizedCnpj
+    )
+
+    // Buscar nome do município
+    const municipality = this.municipalityItems.find(
+      m => m.code === establishment.city_code
+    )
+
+    // Buscar nome do país
+    const country = this.countryItems.find(
+      c => c.code === establishment.country_code
+    )
+
+    // Montar telefone completo
+    const phone =
+      establishment.ddd1 && establishment.phone1
+        ? `${establishment.ddd1}${establishment.phone1}`
+        : null
+
+    // Montar rua completa
+    const street =
+      establishment.street_type && establishment.street
+        ? `${establishment.street_type} ${establishment.street}`
+        : (establishment.street ?? null)
+
+    const partnersData: CnpjRawPartner[] = partners.map(p => ({
+      name: p.partner_name ?? null,
+      doc: p.partner_doc ?? null,
+      qualification: p.partner_qualification ?? null
+    }))
+
+    return {
+      basicCnpj: establishment.basic_cnpj,
+      cnpjOrder: establishment.cnpj_order,
+      cnpjDv: establishment.cnpj_dv,
+      companyName: company.company_name,
+      legalNatureCode: company.legal_nature_code,
+      socialCapital: company.social_capital,
+      companySize: company.company_size,
+      tradeName: establishment.trade_name ?? null,
+      registrationStatus: establishment.registration_status,
+      activityStartDate: establishment.activity_start_date ?? null,
+      mainCnae: establishment.main_cnae,
+      phone,
+      email: establishment.email ?? null,
+      street,
+      number: establishment.number ?? null,
+      complement: establishment.complement ?? null,
+      neighborhood: establishment.neighborhood ?? null,
+      zipCode: establishment.zip_code ?? null,
+      state: establishment.state ?? null,
+      cityCode: establishment.city_code ?? null,
+      cityName: municipality?.name ?? null,
+      countryCode: establishment.country_code ?? null,
+      countryName: country?.name ?? null,
+      partners: partnersData
+    }
+  }
+
+  async findByCompanyNameRaw(
+    companyName: string,
+    limit: number = 50
+  ): Promise<CnpjRawData[]> {
+    const searchTerm = companyName.toLowerCase()
+
+    // Buscar empresas pelo nome (case-insensitive, busca parcial)
+    const matchingCompanies = this.companyItems.filter(company =>
+      company.company_name.toLowerCase().includes(searchTerm)
+    )
+
+    if (matchingCompanies.length === 0) {
+      return []
+    }
+
+    // Para cada empresa encontrada, buscar dados completos
+    const results: CnpjRawData[] = []
+
+    for (const company of matchingCompanies.slice(0, limit)) {
+      const fullData = await this.findByCnpjRaw(company.basic_cnpj)
+      if (fullData) {
+        results.push(fullData)
+      }
+    }
+
+    return results
   }
 
   async exists(id: string): Promise<boolean> {
