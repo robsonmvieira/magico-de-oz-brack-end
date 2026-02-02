@@ -12,9 +12,14 @@ import { LeadPartnerQualificationModel } from '@modules/lead/domain/models/lead-
 import {
   CnpjRawData,
   CnpjRawPartner,
-  ILeadRepository
+  ILeadRepository,
+  SearchByCriteriaFilter
 } from '@modules/lead/domain/repositories'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
+import {
+  getCnaeDivisionsForSector,
+  getStatesForRegion
+} from '@modules/lead/domain/mappings'
 import { randomUUID } from 'crypto'
 
 export class LeadInMemoryRepository implements ILeadRepository {
@@ -245,6 +250,76 @@ export class LeadInMemoryRepository implements ILeadRepository {
 
     for (const company of matchingCompanies.slice(0, limit)) {
       const fullData = await this.findByCnpjRaw(company.basic_cnpj)
+      if (fullData) {
+        results.push(fullData)
+      }
+    }
+
+    return results
+  }
+
+  async findByCriteriaRaw(
+    filter: SearchByCriteriaFilter
+  ): Promise<CnpjRawData[]> {
+    const limit = filter.limit ?? 50
+
+    // Se não há filtros, retorna vazio
+    if (
+      !filter.sector &&
+      !filter.region &&
+      !filter.states &&
+      !filter.companySize
+    ) {
+      return []
+    }
+
+    // Filtrar estabelecimentos
+    let filteredEstablishments = [...this.establishmentItems]
+
+    // Filtro por setor (baseado em divisões CNAE)
+    if (filter.sector) {
+      const cnaeDivisions = getCnaeDivisionsForSector(filter.sector)
+      if (cnaeDivisions.length > 0) {
+        filteredEstablishments = filteredEstablishments.filter(est =>
+          cnaeDivisions.some(division => est.main_cnae.startsWith(division))
+        )
+      }
+    }
+
+    // Filtro por região
+    if (filter.region) {
+      const states = getStatesForRegion(filter.region)
+      if (states && states.length > 0) {
+        filteredEstablishments = filteredEstablishments.filter(
+          est => est.state && states.includes(est.state)
+        )
+      }
+    }
+
+    // Filtro por estados específicos
+    if (filter.states && filter.states.length > 0) {
+      const normalizedStates = filter.states.map(s => s.toUpperCase().trim())
+      filteredEstablishments = filteredEstablishments.filter(
+        est => est.state && normalizedStates.includes(est.state)
+      )
+    }
+
+    // Filtro por porte da empresa
+    if (filter.companySize) {
+      const matchingCompanies = this.companyItems.filter(
+        c => c.company_size === filter.companySize
+      )
+      const matchingCnpjs = new Set(matchingCompanies.map(c => c.basic_cnpj))
+      filteredEstablishments = filteredEstablishments.filter(est =>
+        matchingCnpjs.has(est.basic_cnpj)
+      )
+    }
+
+    // Para cada estabelecimento encontrado, buscar dados completos
+    const results: CnpjRawData[] = []
+
+    for (const establishment of filteredEstablishments.slice(0, limit)) {
+      const fullData = await this.findByCnpjRaw(establishment.basic_cnpj)
       if (fullData) {
         results.push(fullData)
       }

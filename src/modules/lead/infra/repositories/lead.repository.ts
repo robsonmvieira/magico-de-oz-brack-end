@@ -1,10 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { and, eq, ilike } from 'drizzle-orm'
+import { and, eq, ilike, inArray, like, or, SQL } from 'drizzle-orm'
 import { DrizzleRepository } from '@modules/shared/infra/repositories'
 import { DRIZZLE, DrizzleDB, PG_POOL } from '@modules/database'
-import { CnpjRawData, ILeadRepository } from '@modules/lead/domain/repositories'
+import {
+  CnpjRawData,
+  ILeadRepository,
+  SearchByCriteriaFilter
+} from '@modules/lead/domain/repositories'
 import { LeadSchema, LeadModel } from '@modules/lead/domain/models'
 import { LeadStage, LeadTemperature } from '@modules/lead/domain/enums'
+import {
+  getCnaeDivisionsForSector,
+  getStatesForRegion
+} from '@modules/lead/domain/mappings'
 import {
   SimpleModel,
   SimpleSchema
@@ -367,6 +375,77 @@ export class LeadRepository
 
     for (const company of companiesResult) {
       const fullData = await this.findByCnpjRaw(company.basicCnpj)
+      if (fullData) {
+        results.push(fullData)
+      }
+    }
+
+    return results
+  }
+
+  async findByCriteriaRaw(
+    filter: SearchByCriteriaFilter
+  ): Promise<CnpjRawData[]> {
+    const limit = filter.limit ?? 50
+    const conditions: SQL[] = []
+
+    // Filtro por setor (baseado em divisões CNAE)
+    if (filter.sector) {
+      const cnaeDivisions = getCnaeDivisionsForSector(filter.sector)
+      if (cnaeDivisions.length > 0) {
+        const cnaeConditions = cnaeDivisions.map(division =>
+          like(this.establishmentTable.main_cnae, `${division}%`)
+        )
+        conditions.push(or(...cnaeConditions)!)
+      }
+    }
+
+    // Filtro por região (converte região para estados)
+    if (filter.region) {
+      const states = getStatesForRegion(filter.region)
+      if (states && states.length > 0) {
+        conditions.push(inArray(this.establishmentTable.state, states))
+      }
+    }
+
+    // Filtro por estados específicos
+    if (filter.states && filter.states.length > 0) {
+      const normalizedStates = filter.states.map(s => s.toUpperCase().trim())
+      conditions.push(inArray(this.establishmentTable.state, normalizedStates))
+    }
+
+    // Filtro por porte da empresa
+    if (filter.companySize) {
+      conditions.push(eq(this.companyTable.company_size, filter.companySize))
+    }
+
+    // Se não há filtros, retorna vazio para evitar queries muito pesadas
+    if (conditions.length === 0) {
+      return []
+    }
+
+    // Busca estabelecimentos com os filtros
+    const establishmentsResult = await this.db
+      .select({
+        basicCnpj: this.establishmentTable.basic_cnpj
+      })
+      .from(this.establishmentTable)
+      .innerJoin(
+        this.companyTable,
+        eq(this.companyTable.basic_cnpj, this.establishmentTable.basic_cnpj)
+      )
+      .where(and(...conditions))
+      .limit(limit)
+
+    if (establishmentsResult.length === 0) {
+      return []
+    }
+
+    // Para cada estabelecimento encontrado, buscar dados completos
+    const results: CnpjRawData[] = []
+
+    for (const establishment of establishmentsResult) {
+      const fullData = await this.findByCnpjRaw(establishment.basicCnpj)
       if (fullData) {
         results.push(fullData)
       }

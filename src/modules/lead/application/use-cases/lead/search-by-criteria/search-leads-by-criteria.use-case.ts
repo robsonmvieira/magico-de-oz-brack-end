@@ -1,5 +1,8 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common'
-import { ILeadRepository } from '@modules/lead/domain/repositories'
+import {
+  ILeadRepository,
+  SearchByCriteriaFilter
+} from '@modules/lead/domain/repositories'
 import { ModelOutput } from '@modules/core/application/use-cases/common'
 import {
   SearchLeadsByCriteriaInput,
@@ -36,9 +39,11 @@ export class SearchLeadsByCriteriaUseCase {
         results.push(...nameResults)
       }
 
-      // TODO: Implementar filtros adicionais (sector, region, size, etc.)
-      // Esses filtros serão aplicados sobre os resultados ou farão queries adicionais
-      // quando tivermos os dados necessários nas tabelas
+      // Busca por critérios (setor, região, porte) - quando não há busca por identificador
+      if (results.length === 0 && this.hasSectorFilter(input)) {
+        const criteriaResults = await this.searchByCriteria(input, limit)
+        results.push(...criteriaResults)
+      }
 
       const output = new SearchLeadsByCriteriaOutput({
         results,
@@ -60,6 +65,16 @@ export class SearchLeadsByCriteriaUseCase {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR
       })
     }
+  }
+
+  private hasSectorFilter(input: SearchLeadsByCriteriaInput): boolean {
+    const filter = input.sectorFilter
+    return !!(
+      filter?.sector ||
+      filter?.region ||
+      filter?.states ||
+      filter?.size
+    )
   }
 
   private async searchByCnpj(cnpj: string): Promise<SearchLeadResult | null> {
@@ -94,6 +109,38 @@ export class SearchLeadsByCriteriaUseCase {
 
     for (const rawData of rawResults) {
       // Para cada resultado, verificar se já existe como lead
+      const fullCnpj = `${rawData.basicCnpj}${rawData.cnpjOrder}${rawData.cnpjDv}`
+      const existingLead = await this.leadRepository.findByCnpj(fullCnpj)
+
+      results.push(
+        SearchLeadsByCriteriaOutput.fromCnpjRawData(
+          rawData,
+          existingLead !== null,
+          existingLead?.id
+        )
+      )
+    }
+
+    return results
+  }
+
+  private async searchByCriteria(
+    input: SearchLeadsByCriteriaInput,
+    limit: number
+  ): Promise<SearchLeadResult[]> {
+    const filter: SearchByCriteriaFilter = {
+      sector: input.sectorFilter?.sector,
+      region: input.sectorFilter?.region,
+      states: input.sectorFilter?.states,
+      companySize: input.sectorFilter?.size,
+      limit
+    }
+
+    const rawResults = await this.leadRepository.findByCriteriaRaw(filter)
+
+    const results: SearchLeadResult[] = []
+
+    for (const rawData of rawResults) {
       const fullCnpj = `${rawData.basicCnpj}${rawData.cnpjOrder}${rawData.cnpjDv}`
       const existingLead = await this.leadRepository.findByCnpj(fullCnpj)
 
