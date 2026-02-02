@@ -1,4 +1,6 @@
 import { CnpjRawData } from '@modules/lead/domain/repositories'
+import { BusinessSector } from '@modules/lead/domain/enums'
+import { getSectorFromCnae } from '@modules/lead/domain/mappings'
 
 export enum SearchResultSource {
   LEAD = 'lead',
@@ -36,6 +38,7 @@ export interface SearchLeadResult {
   registrationStatus: string
   activityStartDate: string | null
   mainCnae: string
+  sector: BusinessSector
 
   // Contato
   phone: string | null
@@ -93,6 +96,7 @@ export class SearchLeadsByCriteriaOutput {
       registrationStatus: rawData.registrationStatus,
       activityStartDate: rawData.activityStartDate,
       mainCnae: rawData.mainCnae,
+      sector: getSectorFromCnae(rawData.mainCnae),
       phone: rawData.phone,
       email: rawData.email,
       address: {

@@ -1,6 +1,6 @@
 import { IRepository } from '@modules/core/domain/repositories'
 import { LeadModel, NewLeadModel } from '../models'
-import { LeadStage, LeadTemperature } from '../enums'
+import { BusinessSector, LeadStage, LeadTemperature } from '../enums'
 import { SimpleModel } from '../models/simple.model'
 import { PartnerModel } from '../models/partner.model'
 import { CountryModel } from '../models/country.model'
@@ -16,6 +16,14 @@ export interface CnpjRawPartner {
   name: string | null
   doc: string | null
   qualification: string | null
+}
+
+export interface SearchByCriteriaFilter {
+  sector?: BusinessSector
+  region?: string // sudeste, sul, nordeste, norte, centro-oeste
+  states?: string[] // UFs: SP, RJ, MG, etc.
+  companySize?: string // 00, 01, 03, 05 (códigos da Receita)
+  limit?: number
 }
 
 export interface CnpjRawData {
@@ -84,6 +92,9 @@ export interface ILeadRepository extends IRepository<LeadModel, NewLeadModel> {
     companyName: string,
     limit?: number
   ): Promise<CnpjRawData[]>
+
+  // Busca por critérios (setor, região, porte)
+  findByCriteriaRaw(filter: SearchByCriteriaFilter): Promise<CnpjRawData[]>
 
   // Verificações de existência
   exists(id: string): Promise<boolean>

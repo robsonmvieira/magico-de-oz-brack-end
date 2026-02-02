@@ -1,6 +1,15 @@
-import { IsOptional, IsString, IsNumber, ValidateNested } from 'class-validator'
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  ValidateNested,
+  IsEnum,
+  IsArray
+} from 'class-validator'
 import { Type } from 'class-transformer'
 import { ApiPropertyOptional } from '@nestjs/swagger'
+import { BusinessSector } from '@modules/lead/domain/enums'
+import { BrazilRegion } from '@modules/lead/domain/mappings'
 
 export class CompanyIdentifierDto {
   @ApiPropertyOptional({ description: 'Nome da empresa para busca parcial' })
@@ -16,19 +25,37 @@ export class CompanyIdentifierDto {
 
 export class SectorFilterDto {
   @ApiPropertyOptional({
-    description: 'Setor de atuação (ex: education, technology, health)'
+    description: 'Setor de atuação',
+    enum: BusinessSector,
+    example: BusinessSector.TECH
   })
   @IsOptional()
-  @IsString()
-  sector?: string
-
-  @ApiPropertyOptional({ description: 'Região (ex: sudeste, sul, nordeste)' })
-  @IsOptional()
-  @IsString()
-  region?: string
+  @IsEnum(BusinessSector)
+  sector?: BusinessSector
 
   @ApiPropertyOptional({
-    description: 'Porte da empresa (ex: small, medium, large)'
+    description: 'Região do Brasil',
+    enum: BrazilRegion,
+    example: BrazilRegion.SUDESTE
+  })
+  @IsOptional()
+  @IsEnum(BrazilRegion)
+  region?: BrazilRegion
+
+  @ApiPropertyOptional({
+    description: 'Estados específicos (UFs)',
+    example: ['SP', 'RJ'],
+    type: [String]
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  states?: string[]
+
+  @ApiPropertyOptional({
+    description:
+      'Porte da empresa (código Receita Federal: 01=ME, 03=EPP, 05=Demais)',
+    example: '03'
   })
   @IsOptional()
   @IsString()
