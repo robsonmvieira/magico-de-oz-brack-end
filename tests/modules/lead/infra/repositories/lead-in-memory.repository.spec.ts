@@ -1,11 +1,100 @@
 import { LeadInMemoryRepository } from './lead-in-memory.repository'
-import { NewLeadModel } from '@modules/lead/domain/models'
+import {
+  NewLeadModel,
+  EstablishmentModel,
+  CompanyModel,
+  PartnerModel
+} from '@modules/lead/domain/models'
 import {
   LeadStage,
   LeadTemperature,
   LeadSource
 } from '@modules/lead/domain/enums'
 import { randomUUID } from 'crypto'
+
+const createValidEstablishment = (
+  overrides: Partial<EstablishmentModel> = {}
+): EstablishmentModel => ({
+  id: randomUUID(),
+  basic_cnpj: '12345678',
+  cnpj_order: '0001',
+  cnpj_dv: '90',
+  branch_type: 'matriz',
+  trade_name: null,
+  registration_status: 'ativa',
+  registration_status_date: null,
+  registration_status_reason: null,
+  foreign_city_name: null,
+  country_code: null,
+  activity_start_date: null,
+  main_cnae: '6201500',
+  secondary_cnaes: null,
+  street_type: null,
+  street: null,
+  number: null,
+  complement: null,
+  neighborhood: null,
+  zip_code: null,
+  state: null,
+  city_code: null,
+  ddd1: null,
+  phone1: null,
+  ddd2: null,
+  phone2: null,
+  fax_ddd: null,
+  fax: null,
+  email: null,
+  special_situation: null,
+  special_situation_date: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  isDeleted: false,
+  isActive: true,
+  isBlocked: false,
+  ...overrides
+})
+
+const createValidCompany = (
+  overrides: Partial<CompanyModel> = {}
+): CompanyModel => ({
+  id: randomUUID(),
+  basic_cnpj: '12345678',
+  company_name: 'Empresa ABC LTDA',
+  legal_nature_code: '2062',
+  responsible_qualification: '05',
+  social_capital: '100000',
+  company_size: 'ME',
+  federative_entity: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  isDeleted: false,
+  isActive: true,
+  isBlocked: false,
+  ...overrides
+})
+
+const createValidPartner = (
+  overrides: Partial<PartnerModel> = {}
+): PartnerModel => ({
+  id: randomUUID(),
+  basic_cnpj: '12345678',
+  partner_identifier: null,
+  partner_name: null,
+  partner_doc: null,
+  partner_qualification: null,
+  entry_date: null,
+  country_code: null,
+  legal_representative_doc: null,
+  legal_representative_name: null,
+  legal_representative_qualification: null,
+  age_range: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  isDeleted: false,
+  isActive: true,
+  isBlocked: false,
+  ...overrides
+})
 
 describe('LeadInMemoryRepository', () => {
   let repository: LeadInMemoryRepository
@@ -355,10 +444,18 @@ describe('LeadInMemoryRepository', () => {
         trade_name: 'Empresa ABC',
         branch_type: 'matriz',
         registration_status: 'ativa',
+        registration_status_date: null,
+        registration_status_reason: null,
+        foreign_city_name: null,
         main_cnae: '6201500',
+        secondary_cnaes: null,
         activity_start_date: '2020-01-15',
         ddd1: '11',
         phone1: '987654321',
+        ddd2: null,
+        phone2: null,
+        fax_ddd: null,
+        fax: null,
         email: 'contato@empresa.com',
         street_type: 'Rua',
         street: 'das Flores',
@@ -369,6 +466,8 @@ describe('LeadInMemoryRepository', () => {
         state: 'SP',
         city_code: '3550308',
         country_code: '105',
+        special_situation: null,
+        special_situation_date: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         isDeleted: false,
@@ -385,6 +484,7 @@ describe('LeadInMemoryRepository', () => {
         responsible_qualification: '05',
         social_capital: '100000',
         company_size: 'ME',
+        federative_entity: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         isDeleted: false,
@@ -396,9 +496,16 @@ describe('LeadInMemoryRepository', () => {
       await repository.createPartner({
         id: randomUUID(),
         basic_cnpj: basicCnpj,
+        partner_identifier: null,
         partner_name: 'João Silva',
         partner_doc: '12345678901',
         partner_qualification: '49',
+        entry_date: null,
+        country_code: null,
+        legal_representative_doc: null,
+        legal_representative_name: null,
+        legal_representative_qualification: null,
+        age_range: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         isDeleted: false,
@@ -465,62 +572,40 @@ describe('LeadInMemoryRepository', () => {
     it('should return multiple partners in partners array', async () => {
       const basicCnpj = '87654321'
 
-      await repository.createEstablishment({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        cnpj_order: '0001',
-        cnpj_dv: '10',
-        trade_name: 'Empresa XYZ',
-        branch_type: 'matriz',
-        registration_status: 'ativa',
-        main_cnae: '6201500',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createEstablishment(
+        createValidEstablishment({
+          basic_cnpj: basicCnpj,
+          cnpj_order: '0001',
+          cnpj_dv: '10',
+          trade_name: 'Empresa XYZ'
+        })
+      )
 
-      await repository.createCompany({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        company_name: 'Empresa XYZ LTDA',
-        legal_nature_code: '2062',
-        responsible_qualification: '05',
-        social_capital: '50000',
-        company_size: 'ME',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createCompany(
+        createValidCompany({
+          basic_cnpj: basicCnpj,
+          company_name: 'Empresa XYZ LTDA',
+          social_capital: '50000'
+        })
+      )
 
-      await repository.createPartner({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        partner_name: 'Maria Santos',
-        partner_doc: '11111111111',
-        partner_qualification: '49',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createPartner(
+        createValidPartner({
+          basic_cnpj: basicCnpj,
+          partner_name: 'Maria Santos',
+          partner_doc: '11111111111',
+          partner_qualification: '49'
+        })
+      )
 
-      await repository.createPartner({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        partner_name: 'Pedro Oliveira',
-        partner_doc: '22222222222',
-        partner_qualification: '22',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createPartner(
+        createValidPartner({
+          basic_cnpj: basicCnpj,
+          partner_name: 'Pedro Oliveira',
+          partner_doc: '22222222222',
+          partner_qualification: '22'
+        })
+      )
 
       const result = await repository.findByCnpjRaw(basicCnpj)
 
@@ -533,36 +618,23 @@ describe('LeadInMemoryRepository', () => {
     it('should normalize CNPJ removing non-digits', async () => {
       const basicCnpj = '33581425'
 
-      await repository.createEstablishment({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        cnpj_order: '0001',
-        cnpj_dv: '79',
-        trade_name: 'Test Company',
-        branch_type: 'matriz',
-        registration_status: 'ativa',
-        main_cnae: '6201500',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createEstablishment(
+        createValidEstablishment({
+          basic_cnpj: basicCnpj,
+          cnpj_order: '0001',
+          cnpj_dv: '79',
+          trade_name: 'Test Company'
+        })
+      )
 
-      await repository.createCompany({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        company_name: 'Test Company LTDA',
-        legal_nature_code: '2062',
-        responsible_qualification: '05',
-        social_capital: '200000',
-        company_size: 'EPP',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createCompany(
+        createValidCompany({
+          basic_cnpj: basicCnpj,
+          company_name: 'Test Company LTDA',
+          social_capital: '200000',
+          company_size: 'EPP'
+        })
+      )
 
       const result = await repository.findByCnpjRaw('335.814.25')
 
@@ -579,21 +651,14 @@ describe('LeadInMemoryRepository', () => {
     it('should return null if no company exists', async () => {
       const basicCnpj = '11111111'
 
-      await repository.createEstablishment({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        cnpj_order: '0001',
-        cnpj_dv: '00',
-        trade_name: 'Orphan Establishment',
-        branch_type: 'matriz',
-        registration_status: 'ativa',
-        main_cnae: '6201500',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createEstablishment(
+        createValidEstablishment({
+          basic_cnpj: basicCnpj,
+          cnpj_order: '0001',
+          cnpj_dv: '00',
+          trade_name: 'Orphan Establishment'
+        })
+      )
 
       const result = await repository.findByCnpjRaw(basicCnpj)
 
@@ -603,36 +668,22 @@ describe('LeadInMemoryRepository', () => {
     it('should return data even without partners', async () => {
       const basicCnpj = '99999999'
 
-      await repository.createEstablishment({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        cnpj_order: '0001',
-        cnpj_dv: '00',
-        trade_name: 'No Partners Company',
-        branch_type: 'matriz',
-        registration_status: 'ativa',
-        main_cnae: '6201500',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createEstablishment(
+        createValidEstablishment({
+          basic_cnpj: basicCnpj,
+          cnpj_order: '0001',
+          cnpj_dv: '00',
+          trade_name: 'No Partners Company'
+        })
+      )
 
-      await repository.createCompany({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        company_name: 'No Partners LTDA',
-        legal_nature_code: '2062',
-        responsible_qualification: '05',
-        social_capital: '10000',
-        company_size: 'ME',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createCompany(
+        createValidCompany({
+          basic_cnpj: basicCnpj,
+          company_name: 'No Partners LTDA',
+          social_capital: '10000'
+        })
+      )
 
       const result = await repository.findByCnpjRaw(basicCnpj)
 
@@ -646,36 +697,21 @@ describe('LeadInMemoryRepository', () => {
     it('should find companies by partial name match', async () => {
       const basicCnpj = '12345678'
 
-      await repository.createEstablishment({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        cnpj_order: '0001',
-        cnpj_dv: '90',
-        trade_name: 'Tech Solutions',
-        branch_type: 'matriz',
-        registration_status: 'ativa',
-        main_cnae: '6201500',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createEstablishment(
+        createValidEstablishment({
+          basic_cnpj: basicCnpj,
+          cnpj_order: '0001',
+          cnpj_dv: '90',
+          trade_name: 'Tech Solutions'
+        })
+      )
 
-      await repository.createCompany({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        company_name: 'R MAIA SOLUTION LTDA',
-        legal_nature_code: '2062',
-        responsible_qualification: '05',
-        social_capital: '100000',
-        company_size: 'ME',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createCompany(
+        createValidCompany({
+          basic_cnpj: basicCnpj,
+          company_name: 'R MAIA SOLUTION LTDA'
+        })
+      )
 
       const result = await repository.findByCompanyNameRaw('maia')
 
@@ -686,36 +722,22 @@ describe('LeadInMemoryRepository', () => {
     it('should be case-insensitive', async () => {
       const basicCnpj = '87654321'
 
-      await repository.createEstablishment({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        cnpj_order: '0001',
-        cnpj_dv: '10',
-        trade_name: 'Acme Corp',
-        branch_type: 'matriz',
-        registration_status: 'ativa',
-        main_cnae: '6201500',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createEstablishment(
+        createValidEstablishment({
+          basic_cnpj: basicCnpj,
+          cnpj_order: '0001',
+          cnpj_dv: '10',
+          trade_name: 'Acme Corp'
+        })
+      )
 
-      await repository.createCompany({
-        id: randomUUID(),
-        basic_cnpj: basicCnpj,
-        company_name: 'ACME CORPORATION LTDA',
-        legal_nature_code: '2062',
-        responsible_qualification: '05',
-        social_capital: '50000',
-        company_size: 'ME',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createCompany(
+        createValidCompany({
+          basic_cnpj: basicCnpj,
+          company_name: 'ACME CORPORATION LTDA',
+          social_capital: '50000'
+        })
+      )
 
       const result = await repository.findByCompanyNameRaw('acme')
 
@@ -725,68 +747,40 @@ describe('LeadInMemoryRepository', () => {
 
     it('should return multiple matches', async () => {
       // Company 1
-      await repository.createEstablishment({
-        id: randomUUID(),
-        basic_cnpj: '11111111',
-        cnpj_order: '0001',
-        cnpj_dv: '00',
-        trade_name: 'Tech 1',
-        branch_type: 'matriz',
-        registration_status: 'ativa',
-        main_cnae: '6201500',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createEstablishment(
+        createValidEstablishment({
+          basic_cnpj: '11111111',
+          cnpj_order: '0001',
+          cnpj_dv: '00',
+          trade_name: 'Tech 1'
+        })
+      )
 
-      await repository.createCompany({
-        id: randomUUID(),
-        basic_cnpj: '11111111',
-        company_name: 'TECNOLOGIA ALPHA LTDA',
-        legal_nature_code: '2062',
-        responsible_qualification: '05',
-        social_capital: '100000',
-        company_size: 'ME',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createCompany(
+        createValidCompany({
+          basic_cnpj: '11111111',
+          company_name: 'TECNOLOGIA ALPHA LTDA'
+        })
+      )
 
       // Company 2
-      await repository.createEstablishment({
-        id: randomUUID(),
-        basic_cnpj: '22222222',
-        cnpj_order: '0001',
-        cnpj_dv: '00',
-        trade_name: 'Tech 2',
-        branch_type: 'matriz',
-        registration_status: 'ativa',
-        main_cnae: '6201500',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createEstablishment(
+        createValidEstablishment({
+          basic_cnpj: '22222222',
+          cnpj_order: '0001',
+          cnpj_dv: '00',
+          trade_name: 'Tech 2'
+        })
+      )
 
-      await repository.createCompany({
-        id: randomUUID(),
-        basic_cnpj: '22222222',
-        company_name: 'TECNOLOGIA BETA LTDA',
-        legal_nature_code: '2062',
-        responsible_qualification: '05',
-        social_capital: '200000',
-        company_size: 'EPP',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDeleted: false,
-        isActive: true,
-        isBlocked: false
-      })
+      await repository.createCompany(
+        createValidCompany({
+          basic_cnpj: '22222222',
+          company_name: 'TECNOLOGIA BETA LTDA',
+          social_capital: '200000',
+          company_size: 'EPP'
+        })
+      )
 
       const result = await repository.findByCompanyNameRaw('tecnologia')
 
@@ -800,36 +794,21 @@ describe('LeadInMemoryRepository', () => {
       for (let i = 1; i <= 3; i++) {
         const basicCnpj = `${i}${i}${i}${i}${i}${i}${i}${i}`
 
-        await repository.createEstablishment({
-          id: randomUUID(),
-          basic_cnpj: basicCnpj,
-          cnpj_order: '0001',
-          cnpj_dv: '00',
-          trade_name: `Software ${i}`,
-          branch_type: 'matriz',
-          registration_status: 'ativa',
-          main_cnae: '6201500',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          isDeleted: false,
-          isActive: true,
-          isBlocked: false
-        })
+        await repository.createEstablishment(
+          createValidEstablishment({
+            basic_cnpj: basicCnpj,
+            cnpj_order: '0001',
+            cnpj_dv: '00',
+            trade_name: `Software ${i}`
+          })
+        )
 
-        await repository.createCompany({
-          id: randomUUID(),
-          basic_cnpj: basicCnpj,
-          company_name: `SOFTWARE HOUSE ${i} LTDA`,
-          legal_nature_code: '2062',
-          responsible_qualification: '05',
-          social_capital: '100000',
-          company_size: 'ME',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          isDeleted: false,
-          isActive: true,
-          isBlocked: false
-        })
+        await repository.createCompany(
+          createValidCompany({
+            basic_cnpj: basicCnpj,
+            company_name: `SOFTWARE HOUSE ${i} LTDA`
+          })
+        )
       }
 
       const result = await repository.findByCompanyNameRaw('software', 2)
