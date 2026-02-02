@@ -7,7 +7,8 @@ import {
   UpdateLeadUseCase,
   DeleteLeadUseCase,
   SearchLeadUseCase,
-  AutocompleteLeadUseCase
+  AutocompleteLeadUseCase,
+  SearchLeadsByCriteriaUseCase
 } from '../use-cases/lead'
 import { SearchLocationUseCase } from '../use-cases/lead/search-location/search-location.use-case'
 
@@ -48,6 +49,10 @@ describe('LeadController', () => {
         },
         {
           provide: AutocompleteLeadUseCase,
+          useValue: { execute: jest.fn() }
+        },
+        {
+          provide: SearchLeadsByCriteriaUseCase,
           useValue: { execute: jest.fn() }
         }
       ]

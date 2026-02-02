@@ -97,7 +97,9 @@ const createMockLeadRepository = (): jest.Mocked<ILeadRepository> => ({
   findLeadPartnerQualificationByCode: jest.fn(),
   findAllLeadPartnerQualifications: jest.fn(),
   createLeadPartnerQualification: jest.fn(),
-  bulkLeadPartnerQualificationInsert: jest.fn()
+  bulkLeadPartnerQualificationInsert: jest.fn(),
+  findByCnpjRaw: jest.fn(),
+  findByCompanyNameRaw: jest.fn()
 })
 
 const createMockUnitOfWork = (): jest.Mocked<IUnitOfWork<any>> => ({
