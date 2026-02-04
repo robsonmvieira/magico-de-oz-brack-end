@@ -88,20 +88,19 @@ describe.skip('SerperGoogleMapsProvider (Integration)', () => {
       )
 
       expect(result).toBeDefined()
-      expect(result.searchParameters).toBeDefined()
-      expect(result.searchParameters.q).toBe('restaurantes')
       expect(result.suggestions).toBeDefined()
       expect(Array.isArray(result.suggestions)).toBe(true)
     }, 30000)
 
-    it('should return suggestions with value property', async () => {
+    it('should return suggestions with placePrediction structure', async () => {
       const result = await provider.autoComplete('padarias', 'BR', 'São Paulo')
 
       expect(result.suggestions.length).toBeGreaterThan(0)
 
       const suggestion = result.suggestions[0]
-      expect(suggestion.value).toBeDefined()
-      expect(typeof suggestion.value).toBe('string')
+      expect(suggestion.placePrediction).toBeDefined()
+      expect(suggestion.placePrediction.text.text).toBeDefined()
+      expect(typeof suggestion.placePrediction.text.text).toBe('string')
     }, 30000)
 
     it('should handle partial query terms', async () => {

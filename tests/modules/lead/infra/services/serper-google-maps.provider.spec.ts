@@ -197,28 +197,71 @@ describe('SerperGoogleMapsProvider', () => {
   })
 
   describe('autoComplete', () => {
-    const mockAutoCompleteResponse = {
-      searchParameters: {
-        q: 'restaurantes',
-        gl: 'BR',
-        hl: 'pt-br',
-        uule: 'w+CAIQICINQW52aWxsZSxUZW5uZXNzZWUsVW5pdGVkIFN0YXRlcw',
-        type: 'autocomplete',
-        location: 'São Paulo',
-        engine: 'google_maps_autocomplete'
-      },
+    const mockSerperResponse = {
       suggestions: [
         { value: 'restaurantes italianos' },
         { value: 'restaurantes japoneses' },
         { value: 'restaurantes mexicanos' },
         { value: 'restaurantes brasileiros' }
-      ],
-      credits: 1
+      ]
+    }
+
+    const expectedTransformedResponse = {
+      suggestions: [
+        {
+          placePrediction: {
+            place: '',
+            placeId: '',
+            text: { text: 'restaurantes italianos' },
+            structuredFormat: {
+              mainText: { text: 'restaurantes italianos' },
+              secondaryText: { text: '' }
+            },
+            types: []
+          }
+        },
+        {
+          placePrediction: {
+            place: '',
+            placeId: '',
+            text: { text: 'restaurantes japoneses' },
+            structuredFormat: {
+              mainText: { text: 'restaurantes japoneses' },
+              secondaryText: { text: '' }
+            },
+            types: []
+          }
+        },
+        {
+          placePrediction: {
+            place: '',
+            placeId: '',
+            text: { text: 'restaurantes mexicanos' },
+            structuredFormat: {
+              mainText: { text: 'restaurantes mexicanos' },
+              secondaryText: { text: '' }
+            },
+            types: []
+          }
+        },
+        {
+          placePrediction: {
+            place: '',
+            placeId: '',
+            text: { text: 'restaurantes brasileiros' },
+            structuredFormat: {
+              mainText: { text: 'restaurantes brasileiros' },
+              secondaryText: { text: '' }
+            },
+            types: []
+          }
+        }
+      ]
     }
 
     it('should call API with correct parameters', async () => {
       mockAxiosInstance.post.mockResolvedValue({
-        data: mockAutoCompleteResponse
+        data: mockSerperResponse
       })
 
       await provider.autoComplete('restaurantes', 'BR', 'São Paulo')
@@ -234,9 +277,9 @@ describe('SerperGoogleMapsProvider', () => {
       )
     })
 
-    it('should return autocomplete suggestions on success', async () => {
+    it('should return autocomplete suggestions transformed to standard format', async () => {
       mockAxiosInstance.post.mockResolvedValue({
-        data: mockAutoCompleteResponse
+        data: mockSerperResponse
       })
 
       const result = await provider.autoComplete(
@@ -245,14 +288,15 @@ describe('SerperGoogleMapsProvider', () => {
         'São Paulo'
       )
 
-      expect(result).toEqual(mockAutoCompleteResponse)
+      expect(result).toEqual(expectedTransformedResponse)
       expect(result.suggestions).toHaveLength(4)
-      expect(result.suggestions[0].value).toBe('restaurantes italianos')
+      expect(result.suggestions[0].placePrediction.text.text).toBe(
+        'restaurantes italianos'
+      )
     })
 
     it('should return empty suggestions array when no suggestions found', async () => {
       const emptyResponse = {
-        ...mockAutoCompleteResponse,
         suggestions: []
       }
       mockAxiosInstance.post.mockResolvedValue({ data: emptyResponse })
@@ -296,7 +340,7 @@ describe('SerperGoogleMapsProvider', () => {
 
     it('should work with different country and location parameters', async () => {
       mockAxiosInstance.post.mockResolvedValue({
-        data: mockAutoCompleteResponse
+        data: mockSerperResponse
       })
 
       await provider.autoComplete('dentists', 'US', 'New York')
