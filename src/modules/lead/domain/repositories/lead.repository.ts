@@ -23,6 +23,10 @@ export interface SearchByCriteriaFilter {
   region?: string // sudeste, sul, nordeste, norte, centro-oeste
   states?: string[] // UFs: SP, RJ, MG, etc.
   companySize?: string // 00, 01, 03, 05 (códigos da Receita)
+  // Advanced filters
+  foundationYear?: string // Ano de fundação (YYYY)
+  keywords?: string[] // Palavras-chave para busca em trade_name, company_name, cnae
+  term?: string // Termo de busca livre (trade_name ou company_name)
   limit?: number
 }
 

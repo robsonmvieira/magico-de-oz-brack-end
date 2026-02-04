@@ -9,6 +9,7 @@ import {
   SearchLeadsByCriteriaOutput,
   SearchLeadResult
 } from './dtos'
+import { LeadMapper } from '@modules/lead/application/mappers'
 
 @Injectable()
 export class SearchLeadsByCriteriaUseCase {
@@ -39,8 +40,8 @@ export class SearchLeadsByCriteriaUseCase {
         results.push(...nameResults)
       }
 
-      // Busca por critérios (setor, região, porte) - quando não há busca por identificador
-      if (results.length === 0 && this.hasSectorFilter(input)) {
+      // Busca por critérios (setor, região, porte, filtros avançados) - quando não há busca por identificador
+      if (results.length === 0 && this.hasSearchFilter(input)) {
         const criteriaResults = await this.searchByCriteria(input, limit)
         results.push(...criteriaResults)
       }
@@ -67,13 +68,17 @@ export class SearchLeadsByCriteriaUseCase {
     }
   }
 
-  private hasSectorFilter(input: SearchLeadsByCriteriaInput): boolean {
-    const filter = input.sectorFilter
+  private hasSearchFilter(input: SearchLeadsByCriteriaInput): boolean {
+    const sectorFilter = input.sectorFilter
+    const advancedFilter = input.advancedFilter
     return !!(
-      filter?.sector ||
-      filter?.region ||
-      filter?.states ||
-      filter?.size
+      sectorFilter?.sector ||
+      sectorFilter?.region ||
+      sectorFilter?.states ||
+      sectorFilter?.size ||
+      advancedFilter?.term ||
+      advancedFilter?.foundationYear ||
+      advancedFilter?.keywords
     )
   }
 
@@ -88,7 +93,7 @@ export class SearchLeadsByCriteriaUseCase {
       return null
     }
 
-    return SearchLeadsByCriteriaOutput.fromCnpjRawData(
+    return LeadMapper.fromCnpjRawData(
       rawData,
       existingLead !== null,
       existingLead?.id
@@ -113,7 +118,7 @@ export class SearchLeadsByCriteriaUseCase {
       const existingLead = await this.leadRepository.findByCnpj(fullCnpj)
 
       results.push(
-        SearchLeadsByCriteriaOutput.fromCnpjRawData(
+        LeadMapper.fromCnpjRawData(
           rawData,
           existingLead !== null,
           existingLead?.id
@@ -128,15 +133,36 @@ export class SearchLeadsByCriteriaUseCase {
     input: SearchLeadsByCriteriaInput,
     limit: number
   ): Promise<SearchLeadResult[]> {
+    // Parse keywords string to array if provided
+    const keywords = input.advancedFilter?.keywords
+      ? input.advancedFilter.keywords
+          .split(',')
+          .map(k => k.trim())
+          .filter(k => k.length > 0)
+      : undefined
+
     const filter: SearchByCriteriaFilter = {
       sector: input.sectorFilter?.sector,
       region: input.sectorFilter?.region,
       states: input.sectorFilter?.states,
       companySize: input.sectorFilter?.size,
+      // Advanced filters
+      term: input.advancedFilter?.term,
+      foundationYear: input.advancedFilter?.foundationYear,
+      keywords,
       limit
     }
 
+    console.log(
+      '[SearchLeadsByCriteriaUseCase] Calling findByCriteriaRaw with filter:',
+      JSON.stringify(filter)
+    )
     const rawResults = await this.leadRepository.findByCriteriaRaw(filter)
+    console.log(
+      '[SearchLeadsByCriteriaUseCase] findByCriteriaRaw returned',
+      rawResults.length,
+      'results'
+    )
 
     const results: SearchLeadResult[] = []
 
@@ -145,7 +171,7 @@ export class SearchLeadsByCriteriaUseCase {
       const existingLead = await this.leadRepository.findByCnpj(fullCnpj)
 
       results.push(
-        SearchLeadsByCriteriaOutput.fromCnpjRawData(
+        LeadMapper.fromCnpjRawData(
           rawData,
           existingLead !== null,
           existingLead?.id

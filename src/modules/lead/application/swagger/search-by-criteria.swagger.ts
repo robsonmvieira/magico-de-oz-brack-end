@@ -43,17 +43,36 @@ export const SearchByCriteriaSwagger = {
           sectorFilter: {
             sector: 'technology',
             region: 'sudeste',
-            size: 'medium'
+            states: ['SP', 'RJ'],
+            size: '03'
           },
           advancedFilter: {
-            revenueMin: '100000',
-            revenueMax: '1000000',
-            employeesMin: '10',
-            employeesMax: '50',
+            term: 'software',
             foundationYear: '2020',
-            keywords: 'software, saas'
+            keywords: 'saas, cloud'
           },
           limit: 20
+        }
+      },
+      byTerm: {
+        summary: 'Busca por termo (Full Text Search)',
+        value: {
+          advancedFilter: {
+            term: 'Restaurante'
+          },
+          limit: 50
+        }
+      },
+      byKeywords: {
+        summary: 'Busca por palavras-chave',
+        value: {
+          advancedFilter: {
+            keywords: 'delivery, alimentacao'
+          },
+          sectorFilter: {
+            region: 'sudeste'
+          },
+          limit: 30
         }
       }
     }
