@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { and, eq, ilike, inArray, like, or, SQL } from 'drizzle-orm'
+import { and, eq, gte, ilike, inArray, like, or, SQL } from 'drizzle-orm'
 import { DrizzleRepository } from '@modules/shared/infra/repositories'
 import { DRIZZLE, DrizzleDB, PG_POOL } from '@modules/database'
 import {
@@ -387,20 +387,180 @@ export class LeadRepository
     filter: SearchByCriteriaFilter
   ): Promise<CnpjRawData[]> {
     const limit = filter.limit ?? 50
+
+    if (this.hasNoFilters(filter)) {
+      return []
+    }
+
+    const matchingCnpjs = await this.searchCnpjsByTextFilters(filter, limit)
+
+    if (this.shouldReturnEmpty(filter, matchingCnpjs)) {
+      return []
+    }
+
+    const conditions = this.buildFilterConditions(filter, matchingCnpjs)
+
+    if (!filter.term && !filter.keywords?.length && conditions.length === 0) {
+      return []
+    }
+
+    const establishments = await this.fetchEstablishmentsWithDetails(
+      conditions,
+      limit
+    )
+
+    if (establishments.length === 0) {
+      return []
+    }
+
+    const partnersByBasicCnpj = await this.fetchPartnersByCnpjs(
+      establishments.map(e => e.basicCnpj)
+    )
+
+    return this.mapToCnpjRawData(establishments, partnersByBasicCnpj)
+  }
+
+  private hasNoFilters(filter: SearchByCriteriaFilter): boolean {
+    return (
+      !filter.sector &&
+      !filter.region &&
+      !filter.states?.length &&
+      !filter.companySize &&
+      !filter.foundationYear &&
+      !filter.term &&
+      !filter.keywords?.length
+    )
+  }
+
+  private async searchCnpjsByTextFilters(
+    filter: SearchByCriteriaFilter,
+    limit: number
+  ): Promise<string[]> {
+    let matchingCnpjs: string[] = []
+
+    if (filter.term) {
+      matchingCnpjs = await this.searchByFullText(filter.term, limit)
+    }
+
+    if (filter.keywords?.length) {
+      matchingCnpjs = await this.searchByKeywords(
+        filter.keywords,
+        matchingCnpjs,
+        limit
+      )
+    }
+
+    return matchingCnpjs
+  }
+
+  private async searchByFullText(
+    term: string,
+    limit: number
+  ): Promise<string[]> {
+    const client = await this.pool.connect()
+    try {
+      const [estResult, compResult] = await Promise.all([
+        client.query(
+          `SELECT basic_cnpj FROM establishments
+           WHERE search_vector @@ plainto_tsquery('portuguese', $1)
+           LIMIT $2`,
+          [term, limit * 2]
+        ),
+        client.query(
+          `SELECT basic_cnpj FROM companies
+           WHERE search_vector @@ plainto_tsquery('portuguese', $1)
+           LIMIT $2`,
+          [term, limit * 2]
+        )
+      ])
+
+      const cnpjSet = new Set<string>()
+      for (const row of estResult.rows) cnpjSet.add(row.basic_cnpj)
+      for (const row of compResult.rows) cnpjSet.add(row.basic_cnpj)
+
+      return [...cnpjSet].slice(0, limit)
+    } finally {
+      client.release()
+    }
+  }
+
+  private async searchByKeywords(
+    keywords: string[],
+    existingCnpjs: string[],
+    limit: number
+  ): Promise<string[]> {
+    const matchingCnpjs = [...existingCnpjs]
+    const client = await this.pool.connect()
+
+    try {
+      for (const keyword of keywords) {
+        const [estResult, compResult] = await Promise.all([
+          client.query(
+            `SELECT basic_cnpj FROM establishments
+             WHERE search_vector @@ plainto_tsquery('portuguese', $1)
+             LIMIT $2`,
+            [keyword, limit * 2]
+          ),
+          client.query(
+            `SELECT basic_cnpj FROM companies
+             WHERE search_vector @@ plainto_tsquery('portuguese', $1)
+             LIMIT $2`,
+            [keyword, limit * 2]
+          )
+        ])
+
+        for (const row of estResult.rows) {
+          if (!matchingCnpjs.includes(row.basic_cnpj)) {
+            matchingCnpjs.push(row.basic_cnpj)
+          }
+        }
+        for (const row of compResult.rows) {
+          if (!matchingCnpjs.includes(row.basic_cnpj)) {
+            matchingCnpjs.push(row.basic_cnpj)
+          }
+        }
+      }
+
+      return matchingCnpjs.slice(0, limit)
+    } finally {
+      client.release()
+    }
+  }
+
+  private shouldReturnEmpty(
+    filter: SearchByCriteriaFilter,
+    matchingCnpjs: string[]
+  ): boolean {
+    return (
+      (!!filter.term || !!filter.keywords?.length) && matchingCnpjs.length === 0
+    )
+  }
+
+  private buildFilterConditions(
+    filter: SearchByCriteriaFilter,
+    matchingCnpjs: string[]
+  ): SQL[] {
     const conditions: SQL[] = []
 
-    // Filtro por setor (baseado em divisões CNAE)
+    if (matchingCnpjs.length > 0) {
+      conditions.push(
+        inArray(this.establishmentTable.basic_cnpj, matchingCnpjs)
+      )
+    }
+
     if (filter.sector) {
       const cnaeDivisions = getCnaeDivisionsForSector(filter.sector)
       if (cnaeDivisions.length > 0) {
         const cnaeConditions = cnaeDivisions.map(division =>
           like(this.establishmentTable.main_cnae, `${division}%`)
         )
-        conditions.push(or(...cnaeConditions)!)
+        const cnaeOrCondition = or(...cnaeConditions)
+        if (cnaeOrCondition) {
+          conditions.push(cnaeOrCondition)
+        }
       }
     }
 
-    // Filtro por região (converte região para estados)
     if (filter.region) {
       const states = getStatesForRegion(filter.region)
       if (states && states.length > 0) {
@@ -408,50 +568,170 @@ export class LeadRepository
       }
     }
 
-    // Filtro por estados específicos
     if (filter.states && filter.states.length > 0) {
       const normalizedStates = filter.states.map(s => s.toUpperCase().trim())
       conditions.push(inArray(this.establishmentTable.state, normalizedStates))
     }
 
-    // Filtro por porte da empresa
     if (filter.companySize) {
       conditions.push(eq(this.companyTable.company_size, filter.companySize))
     }
 
-    // Se não há filtros, retorna vazio para evitar queries muito pesadas
-    if (conditions.length === 0) {
-      return []
+    if (filter.foundationYear) {
+      const startDate = `${filter.foundationYear}0101`
+      conditions.push(
+        gte(this.establishmentTable.activity_start_date, startDate)
+      )
     }
 
-    // Busca estabelecimentos com os filtros
-    const establishmentsResult = await this.db
-      .select({
-        basicCnpj: this.establishmentTable.basic_cnpj
+    return conditions
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async fetchEstablishmentsWithDetails(
+    conditions: SQL[],
+    limit: number
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<any[]> {
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
+    return this.db
+      .selectDistinct({
+        basicCnpj: this.establishmentTable.basic_cnpj,
+        cnpjOrder: this.establishmentTable.cnpj_order,
+        cnpjDv: this.establishmentTable.cnpj_dv,
+        companyName: this.companyTable.company_name,
+        legalNatureCode: this.companyTable.legal_nature_code,
+        socialCapital: this.companyTable.social_capital,
+        companySize: this.companyTable.company_size,
+        tradeName: this.establishmentTable.trade_name,
+        registrationStatus: this.establishmentTable.registration_status,
+        activityStartDate: this.establishmentTable.activity_start_date,
+        mainCnae: this.establishmentTable.main_cnae,
+        ddd1: this.establishmentTable.ddd1,
+        phone1: this.establishmentTable.phone1,
+        email: this.establishmentTable.email,
+        streetType: this.establishmentTable.street_type,
+        street: this.establishmentTable.street,
+        number: this.establishmentTable.number,
+        complement: this.establishmentTable.complement,
+        neighborhood: this.establishmentTable.neighborhood,
+        zipCode: this.establishmentTable.zip_code,
+        state: this.establishmentTable.state,
+        cityCode: this.establishmentTable.city_code,
+        countryCode: this.establishmentTable.country_code,
+        cityName: this.municipalityTable.name,
+        countryName: this.countryTable.name
       })
       .from(this.establishmentTable)
       .innerJoin(
         this.companyTable,
         eq(this.companyTable.basic_cnpj, this.establishmentTable.basic_cnpj)
       )
-      .where(and(...conditions))
+      .leftJoin(
+        this.municipalityTable,
+        eq(this.municipalityTable.code, this.establishmentTable.city_code)
+      )
+      .leftJoin(
+        this.countryTable,
+        eq(this.countryTable.code, this.establishmentTable.country_code)
+      )
+      .where(whereClause)
       .limit(limit)
+  }
 
-    if (establishmentsResult.length === 0) {
-      return []
+  private async fetchPartnersByCnpjs(basicCnpjs: string[]): Promise<
+    Map<
+      string,
+      {
+        name: string | null
+        doc: string | null
+        qualification: string | null
+      }[]
+    >
+  > {
+    const partnersResult = await this.db
+      .select({
+        basicCnpj: this.partnerTable.basic_cnpj,
+        name: this.partnerTable.partner_name,
+        doc: this.partnerTable.partner_doc,
+        qualification: this.partnerTable.partner_qualification
+      })
+      .from(this.partnerTable)
+      .where(inArray(this.partnerTable.basic_cnpj, basicCnpjs))
+
+    const partnersByBasicCnpj = new Map<
+      string,
+      {
+        name: string | null
+        doc: string | null
+        qualification: string | null
+      }[]
+    >()
+
+    for (const partner of partnersResult) {
+      const existing = partnersByBasicCnpj.get(partner.basicCnpj) ?? []
+      existing.push({
+        name: partner.name,
+        doc: partner.doc,
+        qualification: partner.qualification
+      })
+      partnersByBasicCnpj.set(partner.basicCnpj, existing)
     }
 
-    // Para cada estabelecimento encontrado, buscar dados completos
-    const results: CnpjRawData[] = []
+    return partnersByBasicCnpj
+  }
 
-    for (const establishment of establishmentsResult) {
-      const fullData = await this.findByCnpjRaw(establishment.basicCnpj)
-      if (fullData) {
-        results.push(fullData)
+  private mapToCnpjRawData(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    establishments: any[],
+    partnersByBasicCnpj: Map<
+      string,
+      {
+        name: string | null
+        doc: string | null
+        qualification: string | null
+      }[]
+    >
+  ): CnpjRawData[] {
+    return establishments.map(establishment => {
+      const phone =
+        establishment.ddd1 && establishment.phone1
+          ? `${establishment.ddd1}${establishment.phone1}`
+          : null
+
+      const street =
+        establishment.streetType && establishment.street
+          ? `${establishment.streetType} ${establishment.street}`
+          : establishment.street
+
+      return {
+        basicCnpj: establishment.basicCnpj,
+        cnpjOrder: establishment.cnpjOrder,
+        cnpjDv: establishment.cnpjDv,
+        companyName: establishment.companyName,
+        legalNatureCode: establishment.legalNatureCode,
+        socialCapital: establishment.socialCapital,
+        companySize: establishment.companySize,
+        tradeName: establishment.tradeName,
+        registrationStatus: establishment.registrationStatus,
+        activityStartDate: establishment.activityStartDate,
+        mainCnae: establishment.mainCnae,
+        phone,
+        email: establishment.email,
+        street,
+        number: establishment.number,
+        complement: establishment.complement,
+        neighborhood: establishment.neighborhood,
+        zipCode: establishment.zipCode,
+        state: establishment.state,
+        cityCode: establishment.cityCode,
+        cityName: establishment.cityName,
+        countryCode: establishment.countryCode,
+        countryName: establishment.countryName,
+        partners: partnersByBasicCnpj.get(establishment.basicCnpj) ?? []
       }
-    }
-
-    return results
+    })
   }
 
   async exists(id: string): Promise<boolean> {

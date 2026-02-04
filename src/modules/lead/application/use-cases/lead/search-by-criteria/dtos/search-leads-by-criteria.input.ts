@@ -63,32 +63,27 @@ export class SectorFilterDto {
 }
 
 export class AdvancedFilterDto {
-  @ApiPropertyOptional({ description: 'Faturamento mínimo' })
+  @ApiPropertyOptional({
+    description: 'Termo de busca livre (nome fantasia ou razão social)',
+    example: 'Restaurante Pavuna'
+  })
   @IsOptional()
   @IsString()
-  revenueMin?: string
+  term?: string
 
-  @ApiPropertyOptional({ description: 'Faturamento máximo' })
-  @IsOptional()
-  @IsString()
-  revenueMax?: string
-
-  @ApiPropertyOptional({ description: 'Número mínimo de funcionários' })
-  @IsOptional()
-  @IsString()
-  employeesMin?: string
-
-  @ApiPropertyOptional({ description: 'Número máximo de funcionários' })
-  @IsOptional()
-  @IsString()
-  employeesMax?: string
-
-  @ApiPropertyOptional({ description: 'Ano de fundação' })
+  @ApiPropertyOptional({
+    description: 'Ano de fundação (empresas fundadas a partir deste ano)',
+    example: '2018'
+  })
   @IsOptional()
   @IsString()
   foundationYear?: string
 
-  @ApiPropertyOptional({ description: 'Palavras-chave separadas por vírgula' })
+  @ApiPropertyOptional({
+    description:
+      'Palavras-chave para busca em nome e descrição CNAE (separadas por vírgula)',
+    example: 'Gourmet, delivery, alimentação'
+  })
   @IsOptional()
   @IsString()
   keywords?: string

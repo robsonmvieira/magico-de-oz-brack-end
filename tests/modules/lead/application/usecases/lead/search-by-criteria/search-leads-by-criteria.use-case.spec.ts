@@ -5,6 +5,7 @@ import {
   SearchLeadsByCriteriaInput,
   SearchResultSource
 } from '@modules/lead/application/use-cases/lead/search-by-criteria/dtos'
+import { BrazilRegion } from '@modules/lead/domain/mappings'
 import { LeadModel } from '@modules/lead/domain/models'
 
 const createMockLeadRepository = (): jest.Mocked<ILeadRepository> => ({
@@ -570,6 +571,132 @@ describe('SearchLeadsByCriteriaUseCase', () => {
 
         expect(result.ok).toBe(true)
         expect(result.data.results).toHaveLength(0)
+      })
+    })
+
+    describe('busca por filtros avançados', () => {
+      it('deve buscar por termo de busca livre', async () => {
+        const mockRawData = createMockCnpjRawData({
+          tradeName: 'RESTAURANTE PAVUNA'
+        })
+        leadRepository.findByCriteriaRaw.mockResolvedValue([mockRawData])
+        leadRepository.findByCnpj.mockResolvedValue(null)
+
+        const input: SearchLeadsByCriteriaInput = {
+          advancedFilter: { term: 'Restaurante Pavuna' }
+        }
+
+        const result = await useCase.execute(input)
+
+        expect(result.ok).toBe(true)
+        expect(result.data.results).toHaveLength(1)
+        expect(result.data.results[0].tradeName).toBe('RESTAURANTE PAVUNA')
+        expect(leadRepository.findByCriteriaRaw).toHaveBeenCalledWith(
+          expect.objectContaining({ term: 'Restaurante Pavuna' })
+        )
+      })
+
+      it('deve buscar por ano de fundação', async () => {
+        const mockRawData = createMockCnpjRawData({
+          activityStartDate: '20180315'
+        })
+        leadRepository.findByCriteriaRaw.mockResolvedValue([mockRawData])
+        leadRepository.findByCnpj.mockResolvedValue(null)
+
+        const input: SearchLeadsByCriteriaInput = {
+          advancedFilter: { foundationYear: '2018' }
+        }
+
+        const result = await useCase.execute(input)
+
+        expect(result.ok).toBe(true)
+        expect(result.data.results).toHaveLength(1)
+        expect(leadRepository.findByCriteriaRaw).toHaveBeenCalledWith(
+          expect.objectContaining({ foundationYear: '2018' })
+        )
+      })
+
+      it('deve buscar por palavras-chave', async () => {
+        const mockRawData = createMockCnpjRawData({
+          tradeName: 'RESTAURANTE GOURMET DELIVERY'
+        })
+        leadRepository.findByCriteriaRaw.mockResolvedValue([mockRawData])
+        leadRepository.findByCnpj.mockResolvedValue(null)
+
+        const input: SearchLeadsByCriteriaInput = {
+          advancedFilter: { keywords: 'gourmet, delivery, alimentação' }
+        }
+
+        const result = await useCase.execute(input)
+
+        expect(result.ok).toBe(true)
+        expect(result.data.results).toHaveLength(1)
+        expect(leadRepository.findByCriteriaRaw).toHaveBeenCalledWith(
+          expect.objectContaining({
+            keywords: ['gourmet', 'delivery', 'alimentação']
+          })
+        )
+      })
+
+      it('deve combinar filtros avançados com filtros de setor', async () => {
+        const mockRawData = createMockCnpjRawData()
+        leadRepository.findByCriteriaRaw.mockResolvedValue([mockRawData])
+        leadRepository.findByCnpj.mockResolvedValue(null)
+
+        const input: SearchLeadsByCriteriaInput = {
+          sectorFilter: {
+            region: BrazilRegion.SUDESTE,
+            size: '03'
+          },
+          advancedFilter: {
+            term: 'Restaurante',
+            foundationYear: '2018'
+          }
+        }
+
+        const result = await useCase.execute(input)
+
+        expect(result.ok).toBe(true)
+        expect(leadRepository.findByCriteriaRaw).toHaveBeenCalledWith(
+          expect.objectContaining({
+            region: 'sudeste',
+            companySize: '03',
+            term: 'Restaurante',
+            foundationYear: '2018'
+          })
+        )
+      })
+
+      it('deve ignorar keywords vazias após parsing', async () => {
+        leadRepository.findByCriteriaRaw.mockResolvedValue([])
+
+        const input: SearchLeadsByCriteriaInput = {
+          advancedFilter: { keywords: ',  , , ' }
+        }
+
+        const result = await useCase.execute(input)
+
+        expect(result.ok).toBe(true)
+        expect(leadRepository.findByCriteriaRaw).toHaveBeenCalledWith(
+          expect.objectContaining({ keywords: [] })
+        )
+      })
+
+      it('deve retornar lista vazia quando filtros avançados não encontram resultados', async () => {
+        leadRepository.findByCriteriaRaw.mockResolvedValue([])
+
+        const input: SearchLeadsByCriteriaInput = {
+          advancedFilter: {
+            term: 'XYZNONEXISTENT',
+            foundationYear: '2099'
+          }
+        }
+
+        const result = await useCase.execute(input)
+
+        expect(result.ok).toBe(true)
+        expect(result.data.results).toHaveLength(0)
+        expect(result.data.total).toBe(0)
       })
     })
   })

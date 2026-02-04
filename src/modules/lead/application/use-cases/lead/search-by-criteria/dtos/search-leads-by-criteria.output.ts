@@ -1,6 +1,4 @@
-import { CnpjRawData } from '@modules/lead/domain/repositories'
 import { BusinessSector } from '@modules/lead/domain/enums'
-import { getSectorFromCnae } from '@modules/lead/domain/mappings'
 
 export enum SearchResultSource {
   LEAD = 'lead',
@@ -73,47 +71,5 @@ export class SearchLeadsByCriteriaOutput {
     this.results = data.results
     this.total = data.total
     this.hasMore = data.hasMore
-  }
-
-  static fromCnpjRawData(
-    rawData: CnpjRawData,
-    existsAsLead: boolean,
-    leadId?: string
-  ): SearchLeadResult {
-    return {
-      source: SearchResultSource.RECEITA_FEDERAL,
-      existsAsLead,
-      leadId,
-      basicCnpj: rawData.basicCnpj,
-      fullCnpj: `${rawData.basicCnpj}${rawData.cnpjOrder}${rawData.cnpjDv}`,
-      cnpjOrder: rawData.cnpjOrder,
-      cnpjDv: rawData.cnpjDv,
-      companyName: rawData.companyName,
-      tradeName: rawData.tradeName,
-      legalNatureCode: rawData.legalNatureCode,
-      socialCapital: rawData.socialCapital,
-      companySize: rawData.companySize,
-      registrationStatus: rawData.registrationStatus,
-      activityStartDate: rawData.activityStartDate,
-      mainCnae: rawData.mainCnae,
-      sector: getSectorFromCnae(rawData.mainCnae),
-      phone: rawData.phone,
-      email: rawData.email,
-      address: {
-        street: rawData.street,
-        number: rawData.number,
-        complement: rawData.complement,
-        neighborhood: rawData.neighborhood,
-        zipCode: rawData.zipCode,
-        city: rawData.cityName,
-        state: rawData.state,
-        country: rawData.countryName
-      },
-      partners: rawData.partners.map(p => ({
-        name: p.name,
-        doc: p.doc,
-        qualification: p.qualification
-      }))
-    }
   }
 }
