@@ -124,16 +124,36 @@ export class GoogleMapsProvider implements IGoogleMapsProvider {
     country: string,
     location: string
   ): Promise<GoogleMapsAutoCompleteResponse> {
-    const data = JSON.stringify({
-      q: query,
-      gl: country,
-      location,
-      hl: 'pt-br'
-    })
+    const textQuery = location ? `${query} em ${location}, ${country}` : query
 
     return await this.axiosInstance
-      .post('/autocomplete', data)
-      .then(response => response.data)
+      .post('/places:searchText', {
+        textQuery,
+        languageCode: 'pt-BR'
+      })
+      .then(response => {
+        const places = response.data.places || []
+        return {
+          suggestions: places.map(
+            (place: {
+              id: string
+              displayName?: { text: string }
+              formattedAddress?: string
+            }) => ({
+              placePrediction: {
+                place: place.id,
+                placeId: place.id,
+                text: { text: place.displayName?.text || '' },
+                structuredFormat: {
+                  mainText: { text: place.displayName?.text || '' },
+                  secondaryText: { text: place.formattedAddress || '' }
+                },
+                types: []
+              }
+            })
+          )
+        }
+      })
       .catch(error => {
         throw new Error(
           `Error getting Google Maps autocomplete: ${error.message}`

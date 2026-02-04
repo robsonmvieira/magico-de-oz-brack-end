@@ -71,7 +71,25 @@ export class SerperGoogleMapsProvider implements IGoogleMapsProvider {
 
     return await this.axiosInstance
       .post('/autocomplete', data)
-      .then(response => response.data)
+      .then(response => {
+        const serperData = response.data as {
+          suggestions: Array<{ value: string }>
+        }
+        return {
+          suggestions: serperData.suggestions.map(s => ({
+            placePrediction: {
+              place: '',
+              placeId: '',
+              text: { text: s.value },
+              structuredFormat: {
+                mainText: { text: s.value },
+                secondaryText: { text: '' }
+              },
+              types: []
+            }
+          }))
+        }
+      })
       .catch(error => {
         throw new Error(
           `Error getting Google Maps autocomplete: ${error.message}`

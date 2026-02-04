@@ -3,7 +3,9 @@ import { IGoogleMapsProvider } from '@modules/lead/domain/services/googlemaps'
 import { HttpStatus, Inject, Injectable } from '@nestjs/common'
 
 export type AutocompleteLeadOutput = {
-  value: string
+  placeId: string
+  name: string
+  address: string
 }
 
 @Injectable()
@@ -24,9 +26,12 @@ export class AutocompleteLeadUseCase {
       )
 
       const suggestions: AutocompleteLeadOutput[] =
-        autocompleteData.suggestions.map(suggestion => ({
-          value: suggestion.value
-        }))
+        autocompleteData.suggestions?.map(suggestion => ({
+          placeId: suggestion.placePrediction.placeId,
+          name: suggestion.placePrediction.structuredFormat.mainText.text,
+          address:
+            suggestion.placePrediction.structuredFormat.secondaryText.text
+        })) ?? []
 
       return new ModelCollectionOutput<AutocompleteLeadOutput>({
         data: suggestions,

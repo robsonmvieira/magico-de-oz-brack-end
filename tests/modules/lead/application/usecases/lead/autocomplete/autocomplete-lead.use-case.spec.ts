@@ -9,25 +9,28 @@ const createMockGoogleMapsProvider = (): jest.Mocked<IGoogleMapsProvider> => ({
   autoComplete: jest.fn()
 })
 
+const createMockSuggestion = (text: string, placeId: string = 'ChIJ123') => ({
+  placePrediction: {
+    place: `places/${placeId}`,
+    placeId,
+    text: { text },
+    structuredFormat: {
+      mainText: { text: text.split(',')[0] },
+      secondaryText: { text: text.split(',').slice(1).join(',').trim() || '' }
+    },
+    types: ['establishment']
+  }
+})
+
 const createMockAutoCompleteResponse = (
   overrides: Partial<GoogleMapsAutoCompleteResponse> = {}
 ): GoogleMapsAutoCompleteResponse => ({
-  searchParameters: {
-    q: 'restaurantes',
-    gl: 'BR',
-    hl: 'pt-br',
-    uule: 'w+CAIQICINQW52aWxsZSxUZW5uZXNzZWUsVW5pdGVkIFN0YXRlcw',
-    type: 'autocomplete',
-    location: 'São Paulo',
-    engine: 'google_maps_autocomplete'
-  },
   suggestions: [
-    { value: 'restaurantes italianos' },
-    { value: 'restaurantes japoneses' },
-    { value: 'restaurantes mexicanos' },
-    { value: 'restaurantes brasileiros' }
+    createMockSuggestion('restaurantes italianos, São Paulo - SP, Brasil'),
+    createMockSuggestion('restaurantes japoneses, São Paulo - SP, Brasil'),
+    createMockSuggestion('restaurantes mexicanos, São Paulo - SP, Brasil'),
+    createMockSuggestion('restaurantes brasileiros, São Paulo - SP, Brasil')
   ],
-  credits: 1,
   ...overrides
 })
 
@@ -71,17 +74,33 @@ describe('AutocompleteLeadUseCase', () => {
       expect(googleMapsProvider.autoComplete).toHaveBeenCalledTimes(1)
     })
 
-    it('should return mapped suggestions with value property', async () => {
+    it('should return mapped suggestions with placeId, name and address', async () => {
       googleMapsProvider.autoComplete.mockResolvedValue(
         createMockAutoCompleteResponse()
       )
 
       const result = await useCase.execute('restaurantes', 'BR', 'São Paulo')
 
-      expect(result.data[0]).toEqual({ value: 'restaurantes italianos' })
-      expect(result.data[1]).toEqual({ value: 'restaurantes japoneses' })
-      expect(result.data[2]).toEqual({ value: 'restaurantes mexicanos' })
-      expect(result.data[3]).toEqual({ value: 'restaurantes brasileiros' })
+      expect(result.data[0]).toEqual({
+        placeId: 'ChIJ123',
+        name: 'restaurantes italianos',
+        address: 'São Paulo - SP, Brasil'
+      })
+      expect(result.data[1]).toEqual({
+        placeId: 'ChIJ123',
+        name: 'restaurantes japoneses',
+        address: 'São Paulo - SP, Brasil'
+      })
+      expect(result.data[2]).toEqual({
+        placeId: 'ChIJ123',
+        name: 'restaurantes mexicanos',
+        address: 'São Paulo - SP, Brasil'
+      })
+      expect(result.data[3]).toEqual({
+        placeId: 'ChIJ123',
+        name: 'restaurantes brasileiros',
+        address: 'São Paulo - SP, Brasil'
+      })
     })
 
     it('should handle empty suggestions', async () => {
@@ -164,19 +183,10 @@ describe('AutocompleteLeadUseCase', () => {
 
     it('should handle partial query terms', async () => {
       const partialResponse = createMockAutoCompleteResponse({
-        searchParameters: {
-          q: 'dentis',
-          gl: 'BR',
-          hl: 'pt-br',
-          uule: 'w+CAIQICINQW52aWxsZSxUZW5uZXNzZWUsVW5pdGVkIFN0YXRlcw',
-          type: 'autocomplete',
-          location: 'São Paulo',
-          engine: 'google_maps_autocomplete'
-        },
         suggestions: [
-          { value: 'dentistas' },
-          { value: 'dentistas 24 horas' },
-          { value: 'dentistas infantil' }
+          createMockSuggestion('dentistas, São Paulo - SP, Brasil'),
+          createMockSuggestion('dentistas 24 horas, São Paulo - SP, Brasil'),
+          createMockSuggestion('dentistas infantil, São Paulo - SP, Brasil')
         ]
       })
       googleMapsProvider.autoComplete.mockResolvedValue(partialResponse)
@@ -185,7 +195,7 @@ describe('AutocompleteLeadUseCase', () => {
 
       expect(result.ok).toBe(true)
       expect(result.data).toHaveLength(3)
-      expect(result.data[0].value).toBe('dentistas')
+      expect(result.data[0].name).toBe('dentistas')
     })
   })
 })
