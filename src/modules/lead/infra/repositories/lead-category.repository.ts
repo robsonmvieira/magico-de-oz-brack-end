@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
+import { PgColumn } from 'drizzle-orm/pg-core'
 import { DrizzleRepository } from '@modules/shared/infra/repositories'
 import { DRIZZLE, DrizzleDB, DrizzleClient } from '@modules/database'
 import { ILeadCategoryRepository } from '@modules/lead/domain/repositories'
@@ -16,6 +17,10 @@ export class LeadCategoryRepository
 {
   constructor(@Inject(DRIZZLE) db: DrizzleDB) {
     super(db, LeadCategorySchema)
+  }
+
+  protected override getSearchableColumns(): PgColumn[] {
+    return [LeadCategorySchema.name, LeadCategorySchema.description]
   }
 
   async findByKeywordMatch(text: string): Promise<LeadCategoryModel[]> {
