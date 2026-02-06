@@ -8,7 +8,8 @@ import {
   DeleteLeadUseCase,
   SearchLeadUseCase,
   AutocompleteLeadUseCase,
-  SearchLeadsByCriteriaUseCase
+  SearchLeadsByCriteriaUseCase,
+  CreateFromCriteriaUseCase
 } from '../use-cases/lead'
 import { SearchLocationUseCase } from '../use-cases/lead/search-location/search-location.use-case'
 
@@ -53,6 +54,10 @@ describe('LeadController', () => {
         },
         {
           provide: SearchLeadsByCriteriaUseCase,
+          useValue: { execute: jest.fn() }
+        },
+        {
+          provide: CreateFromCriteriaUseCase,
           useValue: { execute: jest.fn() }
         }
       ]
