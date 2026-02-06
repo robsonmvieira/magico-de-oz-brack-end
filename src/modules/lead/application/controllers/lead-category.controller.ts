@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
@@ -18,10 +19,12 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
-  ApiBody
+  ApiBody,
+  ApiQuery
 } from '@nestjs/swagger'
 import { CreateLeadCategoryDto, UpdateLeadCategoryDto } from '../dtos'
 import { ListCategoryUseCase, CreateCategoryUseCase } from '../use-cases'
+import { PaginationQueryDto } from '@modules/core/application/dtos'
 
 @ApiTags('Lead Categories')
 @Controller('lead-categories')
@@ -68,15 +71,57 @@ export class LeadCategoryController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get all lead categories',
-    description: 'Returns a list of all lead categories'
+    summary: 'Get all lead categories (paginated)',
+    description:
+      'Returns a paginated list of lead categories with optional sorting and search'
+  })
+  @ApiQuery({
+    name: 'page',
+    description: 'Page number (1-based)',
+    type: 'number',
+    required: false,
+    example: 1
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Number of items per page (max 100)',
+    type: 'number',
+    required: false,
+    example: 10
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    description: 'Field to sort by',
+    type: 'string',
+    required: false,
+    example: 'createdAt'
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    description: 'Sort order (asc or desc)',
+    enum: ['asc', 'desc'],
+    required: false,
+    example: 'desc'
+  })
+  @ApiQuery({
+    name: 'search',
+    description: 'Search term for filtering results',
+    type: 'string',
+    required: false,
+    example: 'restaurante'
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'List of lead categories retrieved successfully'
+    description: 'Paginated list of lead categories retrieved successfully'
   })
-  async findAll(@Res() res: Response) {
-    const result = await this.listCategoryUseCase.execute()
+  async findAll(@Query() query: PaginationQueryDto, @Res() res: Response) {
+    const result = await this.listCategoryUseCase.execute({
+      page: query.page,
+      limit: query.limit,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+      search: query.search
+    })
     return res.status(result.statusCode).json(result)
   }
 
