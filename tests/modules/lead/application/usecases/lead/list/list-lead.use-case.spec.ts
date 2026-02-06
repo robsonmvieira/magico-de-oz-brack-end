@@ -53,21 +53,48 @@ describe('ListLeadUseCase', () => {
       expect(result.hasError).toBe(false)
       expect(result.data).toHaveLength(0)
       expect(result.totalItems).toBe(0)
+      expect(result.page).toBe(1)
+      expect(result.limit).toBe(10)
       expect(result.statusCode).toBe(HttpStatus.OK)
     })
 
-    it('should return list of leads', async () => {
+    it('should return paginated list of leads', async () => {
       await repository.save(createValidLead({ companyName: 'Empresa 1' }))
       await repository.save(createValidLead({ companyName: 'Empresa 2' }))
       await repository.save(createValidLead({ companyName: 'Empresa 3' }))
 
-      const result = await useCase.execute()
+      const result = await useCase.execute({ page: 1, limit: 10 })
 
       expect(result.ok).toBe(true)
       expect(result.hasError).toBe(false)
       expect(result.data).toHaveLength(3)
       expect(result.totalItems).toBe(3)
+      expect(result.page).toBe(1)
+      expect(result.totalPages).toBe(1)
       expect(result.statusCode).toBe(HttpStatus.OK)
+    })
+
+    it('should paginate correctly with limit', async () => {
+      for (let i = 1; i <= 15; i++) {
+        await repository.save(createValidLead({ companyName: `Empresa ${i}` }))
+      }
+
+      const page1 = await useCase.execute({ page: 1, limit: 5 })
+      expect(page1.data).toHaveLength(5)
+      expect(page1.totalItems).toBe(15)
+      expect(page1.totalPages).toBe(3)
+      expect(page1.hasNextPage).toBe(true)
+      expect(page1.hasPreviousPage).toBe(false)
+
+      const page2 = await useCase.execute({ page: 2, limit: 5 })
+      expect(page2.data).toHaveLength(5)
+      expect(page2.hasNextPage).toBe(true)
+      expect(page2.hasPreviousPage).toBe(true)
+
+      const page3 = await useCase.execute({ page: 3, limit: 5 })
+      expect(page3.data).toHaveLength(5)
+      expect(page3.hasNextPage).toBe(false)
+      expect(page3.hasPreviousPage).toBe(true)
     })
 
     it('should not return deleted leads', async () => {
@@ -114,7 +141,9 @@ describe('ListLeadUseCase', () => {
 
     it('should handle repository errors gracefully', async () => {
       const errorRepo = {
-        findAll: jest.fn().mockRejectedValue(new Error('Database error'))
+        findAllPaginated: jest
+          .fn()
+          .mockRejectedValue(new Error('Database error'))
       }
       ;(useCase as any).repo = errorRepo
       ;(useCase as any).cacheRepo = cacheRepository
@@ -128,14 +157,19 @@ describe('ListLeadUseCase', () => {
     })
 
     it('should return cached data when available', async () => {
-      const cachedLeads = [{ id: randomUUID(), companyName: 'Cached Company' }]
-      cacheRepository.get.mockResolvedValue(JSON.stringify(cachedLeads))
+      const cachedData = {
+        data: [{ id: randomUUID(), companyName: 'Cached Company' }],
+        totalItems: 1,
+        page: 1,
+        limit: 10
+      }
+      cacheRepository.get.mockResolvedValue(JSON.stringify(cachedData))
 
       const result = await useCase.execute()
 
       expect(result.ok).toBe(true)
-      expect(result.data).toEqual(cachedLeads)
-      expect(cacheRepository.get).toHaveBeenCalledWith('leads')
+      expect(result.data).toEqual(cachedData.data)
+      expect(result.totalItems).toBe(1)
     })
 
     it('should cache data after fetching from repository', async () => {
@@ -144,10 +178,40 @@ describe('ListLeadUseCase', () => {
       await useCase.execute()
 
       expect(cacheRepository.set).toHaveBeenCalledWith(
-        'leads',
+        expect.stringContaining('leads:'),
         expect.any(String),
         30
       )
+    })
+
+    it('should filter by search term', async () => {
+      await repository.save(createValidLead({ companyName: 'Restaurante ABC' }))
+      await repository.save(createValidLead({ companyName: 'Padaria XYZ' }))
+      await repository.save(createValidLead({ companyName: 'Restaurante DEF' }))
+
+      const result = await useCase.execute({ search: 'Restaurante' })
+
+      expect(result.ok).toBe(true)
+      expect(result.data).toHaveLength(2)
+      expect(
+        result.data.every(l => l.companyName.includes('Restaurante'))
+      ).toBe(true)
+    })
+  })
+
+  describe('executeAll', () => {
+    it('should return all leads without pagination', async () => {
+      await repository.save(createValidLead({ companyName: 'Empresa 1' }))
+      await repository.save(createValidLead({ companyName: 'Empresa 2' }))
+      await repository.save(createValidLead({ companyName: 'Empresa 3' }))
+
+      const result = await useCase.executeAll()
+
+      expect(result.ok).toBe(true)
+      expect(result.hasError).toBe(false)
+      expect(result.data).toHaveLength(3)
+      expect(result.totalItems).toBe(3)
+      expect(result.statusCode).toBe(HttpStatus.OK)
     })
   })
 })

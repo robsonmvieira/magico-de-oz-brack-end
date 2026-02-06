@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { and, eq, gte, ilike, inArray, like, or, SQL } from 'drizzle-orm'
+import { PgColumn } from 'drizzle-orm/pg-core'
 import { DrizzleRepository } from '@modules/shared/infra/repositories'
 import { DRIZZLE, DrizzleDB, PG_POOL } from '@modules/database'
 import {
@@ -77,6 +78,15 @@ export class LeadRepository
     @Inject(PG_POOL) private readonly pool: Pool
   ) {
     super(db, LeadSchema)
+  }
+
+  protected override getSearchableColumns(): PgColumn[] {
+    return [
+      LeadSchema.companyName,
+      LeadSchema.tradeName,
+      LeadSchema.email,
+      LeadSchema.phone
+    ]
   }
 
   async findByMEI(mei: string): Promise<SimpleModel | null> {

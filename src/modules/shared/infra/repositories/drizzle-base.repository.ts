@@ -1,9 +1,13 @@
-import { eq } from 'drizzle-orm'
-import { PgTable } from 'drizzle-orm/pg-core'
-import { IRepository } from '@modules/core/domain/repositories'
+import { eq, and, or, ilike, sql, asc, desc, SQL } from 'drizzle-orm'
+import { PgTable, PgColumn } from 'drizzle-orm/pg-core'
+import {
+  IRepository,
+  PaginatedResult,
+  PaginationParams
+} from '@modules/core/domain/repositories'
 import { DrizzleDB, DrizzleClient } from '@modules/database'
 
-type TableWithId = PgTable & { id: any; isDeleted: any }
+type TableWithId = PgTable & { id: any; isDeleted: any; createdAt?: any }
 
 export abstract class DrizzleRepository<
   TTable extends TableWithId,
@@ -17,6 +21,10 @@ export abstract class DrizzleRepository<
 
   protected getDb(tx?: DrizzleClient): DrizzleClient {
     return tx ?? this.db
+  }
+
+  protected getSearchableColumns(): PgColumn[] {
+    return []
   }
 
   async save(entity: TInsert, tx?: DrizzleClient): Promise<void> {
@@ -60,5 +68,71 @@ export abstract class DrizzleRepository<
       .where(eq(this.table.isDeleted, false))
 
     return result as TSelect[]
+  }
+
+  async findAllPaginated(
+    params: PaginationParams,
+    tx?: DrizzleClient
+  ): Promise<PaginatedResult<TSelect>> {
+    const { page = 1, limit = 10, sortBy, sortOrder = 'desc', search } = params
+    const offset = (page - 1) * limit
+
+    const conditions: SQL[] = [eq(this.table.isDeleted, false)]
+
+    if (search) {
+      const searchableColumns = this.getSearchableColumns()
+      if (searchableColumns.length > 0) {
+        const searchConditions = searchableColumns.map(column =>
+          ilike(column, `%${search}%`)
+        )
+        const searchOr = or(...searchConditions)
+        if (searchOr) {
+          conditions.push(searchOr)
+        }
+      }
+    }
+
+    const whereClause = and(...conditions)
+
+    let orderByClause: SQL | undefined
+    if (sortBy && sortBy in this.table) {
+      const column = (this.table as any)[sortBy] as PgColumn
+      orderByClause = sortOrder === 'asc' ? asc(column) : desc(column)
+    } else if (this.table.createdAt) {
+      orderByClause =
+        sortOrder === 'asc'
+          ? asc(this.table.createdAt)
+          : desc(this.table.createdAt)
+    }
+
+    const [data, countResult] = await Promise.all([
+      this.getDb(tx)
+        .select()
+        .from(this.table as any)
+        .where(whereClause)
+        .orderBy(orderByClause ?? sql`1`)
+        .limit(limit)
+        .offset(offset),
+      this.getDb(tx)
+        .select({ count: sql<number>`count(*)::int` })
+        .from(this.table as any)
+        .where(whereClause)
+    ])
+
+    return {
+      data: data as TSelect[],
+      totalItems: countResult[0]?.count ?? 0,
+      page,
+      limit
+    }
+  }
+
+  async count(tx?: DrizzleClient): Promise<number> {
+    const result = await this.getDb(tx)
+      .select({ count: sql<number>`count(*)::int` })
+      .from(this.table as any)
+      .where(eq(this.table.isDeleted, false))
+
+    return result[0]?.count ?? 0
   }
 }

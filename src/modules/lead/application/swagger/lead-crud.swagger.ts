@@ -3,6 +3,7 @@ import {
   ApiBodyOptions,
   ApiOperationOptions,
   ApiParamOptions,
+  ApiQueryOptions,
   ApiResponseOptions
 } from '@nestjs/swagger'
 import { CreateLeadDto, UpdateLeadDto } from '../dtos'
@@ -42,14 +43,53 @@ export const CreateLeadSwagger = {
 
 export const ListLeadsSwagger = {
   operation: {
-    summary: 'Get all leads',
-    description: 'Returns a list of all leads'
+    summary: 'Get all leads (paginated)',
+    description:
+      'Returns a paginated list of leads with optional sorting and search'
   } as ApiOperationOptions,
+
+  queries: {
+    page: {
+      name: 'page',
+      description: 'Page number (1-based)',
+      type: 'number',
+      required: false,
+      example: 1
+    } as ApiQueryOptions,
+    limit: {
+      name: 'limit',
+      description: 'Number of items per page (max 100)',
+      type: 'number',
+      required: false,
+      example: 10
+    } as ApiQueryOptions,
+    sortBy: {
+      name: 'sortBy',
+      description: 'Field to sort by',
+      type: 'string',
+      required: false,
+      example: 'createdAt'
+    } as ApiQueryOptions,
+    sortOrder: {
+      name: 'sortOrder',
+      description: 'Sort order (asc or desc)',
+      enum: ['asc', 'desc'],
+      required: false,
+      example: 'desc'
+    } as ApiQueryOptions,
+    search: {
+      name: 'search',
+      description: 'Search term for filtering results',
+      type: 'string',
+      required: false,
+      example: 'empresa'
+    } as ApiQueryOptions
+  },
 
   responses: {
     success: {
       status: HttpStatus.OK,
-      description: 'List of leads retrieved successfully'
+      description: 'Paginated list of leads retrieved successfully'
     } as ApiResponseOptions
   }
 }

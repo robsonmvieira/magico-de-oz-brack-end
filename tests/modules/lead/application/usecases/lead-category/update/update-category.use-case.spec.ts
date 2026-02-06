@@ -34,6 +34,8 @@ describe('UpdateCategoryUseCase', () => {
       delete: jest.fn(),
       findById: jest.fn(),
       findAll: jest.fn(),
+      findAllPaginated: jest.fn(),
+      count: jest.fn(),
       findByKeywordMatch: jest.fn(),
       findActive: jest.fn(),
       findBySlug: jest.fn(),

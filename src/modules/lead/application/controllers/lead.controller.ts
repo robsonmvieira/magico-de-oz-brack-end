@@ -21,6 +21,7 @@ import {
   ApiQuery
 } from '@nestjs/swagger'
 import { CreateLeadDto, UpdateLeadDto } from '../dtos'
+import { PaginationQueryDto } from '@modules/core/application/dtos'
 import {
   ListLeadUseCase,
   CreateLeadUseCase,
@@ -104,9 +105,20 @@ export class LeadController {
 
   @Get()
   @ApiOperation(ListLeadsSwagger.operation)
+  @ApiQuery(ListLeadsSwagger.queries.page)
+  @ApiQuery(ListLeadsSwagger.queries.limit)
+  @ApiQuery(ListLeadsSwagger.queries.sortBy)
+  @ApiQuery(ListLeadsSwagger.queries.sortOrder)
+  @ApiQuery(ListLeadsSwagger.queries.search)
   @ApiResponse(ListLeadsSwagger.responses.success)
-  async findAll(@Res() res: Response) {
-    const result = await this.listLeadUseCase.execute()
+  async findAll(@Query() query: PaginationQueryDto, @Res() res: Response) {
+    const result = await this.listLeadUseCase.execute({
+      page: query.page,
+      limit: query.limit,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+      search: query.search
+    })
     return res.status(result.statusCode).json(result)
   }
 
