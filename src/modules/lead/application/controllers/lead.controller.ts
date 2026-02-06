@@ -30,7 +30,9 @@ import {
   SearchLeadUseCase,
   AutocompleteLeadUseCase,
   SearchLeadsByCriteriaUseCase,
-  SearchLeadsByCriteriaInput
+  SearchLeadsByCriteriaInput,
+  CreateFromCriteriaUseCase,
+  CreateFromCriteriaInput
 } from '../use-cases/lead'
 import { SearchLocationUseCase } from '../use-cases/lead/search-location/search-location.use-case'
 import {
@@ -74,6 +76,9 @@ export class LeadController {
 
   @Inject(SearchLeadsByCriteriaUseCase)
   private readonly searchLeadsByCriteriaUseCase: SearchLeadsByCriteriaUseCase
+
+  @Inject(CreateFromCriteriaUseCase)
+  private readonly createFromCriteriaUseCase: CreateFromCriteriaUseCase
 
   @Post()
   @ApiOperation(CreateLeadSwagger.operation)
@@ -215,6 +220,74 @@ export class LeadController {
     @Res() res: Response
   ) {
     const result = await this.searchLeadsByCriteriaUseCase.execute(input)
+    return res.status(result.statusCode).json(result)
+  }
+
+  @Post('create-from-criteria')
+  @ApiOperation({
+    summary: 'Criar leads a partir de seleção da busca por critérios',
+    description:
+      'Recebe os leads selecionados da busca por critérios (Receita Federal), ' +
+      'busca automaticamente no Google Places, classifica a categoria via IA, ' +
+      'e cria os leads enriquecidos. Para leads não encontrados no Google, ' +
+      'usa os dados da RF para classificação.'
+  })
+  @ApiBody({
+    type: CreateFromCriteriaInput,
+    examples: {
+      example: {
+        summary: 'Exemplo de criação de leads',
+        value: {
+          leads: [
+            {
+              source: 'receita_federal',
+              existsAsLead: false,
+              basicCnpj: '12345678',
+              fullCnpj: '12.345.678/0001-90',
+              cnpjOrder: '0001',
+              cnpjDv: '90',
+              companyName: 'Restaurante Exemplo LTDA',
+              tradeName: 'Cantina do Zé',
+              legalNatureCode: '2062',
+              socialCapital: '50000.00',
+              companySize: 'ME',
+              registrationStatus: 'ATIVA',
+              activityStartDate: '20200115',
+              mainCnae: '5611201',
+              sector: 'hospitality',
+              phone: '11999999999',
+              email: 'contato@cantina.com.br',
+              address: {
+                street: 'Rua das Flores',
+                number: '123',
+                complement: null,
+                neighborhood: 'Centro',
+                zipCode: '01310-100',
+                city: 'São Paulo',
+                state: 'SP',
+                country: 'Brasil'
+              },
+              partners: [
+                {
+                  name: 'José da Silva',
+                  doc: '123.456.789-00',
+                  qualification: 'Sócio-Administrador'
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 201, description: 'Leads criados com sucesso' })
+  @ApiResponse({ status: 400, description: 'Nenhum lead foi criado' })
+  @ApiResponse({ status: 500, description: 'Erro interno' })
+  async createFromCriteria(
+    @Body() input: CreateFromCriteriaInput,
+    @Res() res: Response
+  ) {
+    const result = await this.createFromCriteriaUseCase.execute(input)
     return res.status(result.statusCode).json(result)
   }
 }

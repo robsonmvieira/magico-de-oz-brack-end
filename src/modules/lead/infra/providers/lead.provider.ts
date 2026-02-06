@@ -6,7 +6,8 @@ import {
   DeleteLeadUseCase,
   SearchLeadUseCase,
   AutocompleteLeadUseCase,
-  SearchLeadsByCriteriaUseCase
+  SearchLeadsByCriteriaUseCase,
+  CreateFromCriteriaUseCase
 } from '@modules/lead/application/use-cases/lead'
 import { LeadRepository } from '../repositories'
 import { RedisCacheRepository } from '@modules/shared/infra/cache'
@@ -59,6 +60,10 @@ const USE_CASES_PROVIDERS = {
   SearchLeadsByCriteriaUseCase: {
     provide: SearchLeadsByCriteriaUseCase,
     useClass: SearchLeadsByCriteriaUseCase
+  },
+  CreateFromCriteriaUseCase: {
+    provide: CreateFromCriteriaUseCase,
+    useClass: CreateFromCriteriaUseCase
   }
 } as const
 
