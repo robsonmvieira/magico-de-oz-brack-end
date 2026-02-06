@@ -281,6 +281,13 @@ export class LeadEntity extends AggregateRoot {
     this.touch()
   }
 
+  enrichWithGoogleMaps(data: GoogleMapsDataVO): void {
+    this._googleMapsData = data
+    this._enrichmentStatus = this._enrichmentStatus.markEnriched('googleMaps')
+    this.recalculateScore()
+    this.touch()
+  }
+
   addDecisionMaker(decisionMaker: DecisionMakerVO): void {
     // Não adiciona duplicado (mesmo email ou mesmo nome+cargo)
     const exists = this._decisionMakers.some(
