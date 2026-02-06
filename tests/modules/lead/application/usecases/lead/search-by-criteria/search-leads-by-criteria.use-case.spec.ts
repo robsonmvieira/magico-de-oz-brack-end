@@ -12,6 +12,8 @@ const createMockLeadRepository = (): jest.Mocked<ILeadRepository> => ({
   save: jest.fn(),
   findById: jest.fn(),
   findAll: jest.fn(),
+  findAllPaginated: jest.fn(),
+  count: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
   findByCompanyName: jest.fn(),
