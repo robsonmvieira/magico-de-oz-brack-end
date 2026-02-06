@@ -1,3 +1,5 @@
+import { PaginatedResult, PaginationParams } from './pagination.interface'
+
 export interface IRepository<
   TSelect,
   TInsert = TSelect,
@@ -12,4 +14,9 @@ export interface IRepository<
   delete(entity: TSelect, tx?: TTransaction): Promise<void>
   findById(id: string, tx?: TTransaction): Promise<TSelect | null>
   findAll(tx?: TTransaction): Promise<TSelect[]>
+  findAllPaginated(
+    params: PaginationParams,
+    tx?: TTransaction
+  ): Promise<PaginatedResult<TSelect>>
+  count(tx?: TTransaction): Promise<number>
 }
