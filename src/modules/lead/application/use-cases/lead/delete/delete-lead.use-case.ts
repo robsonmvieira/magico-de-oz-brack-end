@@ -41,7 +41,7 @@ export class DeleteLeadUseCase {
         data: { id, deleted: true },
         hasError: false,
         error: null,
-        statusCode: HttpStatus.OK
+        statusCode: HttpStatus.NO_CONTENT
       })
     } catch (error) {
       return new ModelOutput<DeleteLeadOutput>({
