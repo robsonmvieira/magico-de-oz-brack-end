@@ -1,4 +1,4 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common'
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
 import {
   ILeadRepository,
   SearchByCriteriaFilter
@@ -13,19 +13,33 @@ import { LeadMapper } from '@modules/lead/application/mappers'
 
 @Injectable()
 export class SearchLeadsByCriteriaUseCase {
+  private readonly logger = new Logger(SearchLeadsByCriteriaUseCase.name)
+
   @Inject('ILeadRepository')
   private readonly leadRepository: ILeadRepository
 
   async execute(
     input: SearchLeadsByCriteriaInput
   ): Promise<ModelOutput<SearchLeadsByCriteriaOutput>> {
+    const startTime = Date.now()
+    this.logger.log(
+      `[execute] Starting search with input: ${JSON.stringify(input)}`
+    )
+
     try {
       const limit = input.limit ?? 50
       const results: SearchLeadResult[] = []
 
       // Busca por CNPJ (prioridade máxima - retorno único)
       if (input.companyIdentifier?.cnpj) {
+        this.logger.log(
+          `[execute] Searching by CNPJ: ${input.companyIdentifier.cnpj}`
+        )
+        const cnpjStart = Date.now()
         const cnpjResult = await this.searchByCnpj(input.companyIdentifier.cnpj)
+        this.logger.log(
+          `[execute] CNPJ search took ${Date.now() - cnpjStart}ms`
+        )
         if (cnpjResult) {
           results.push(cnpjResult)
         }
@@ -33,16 +47,28 @@ export class SearchLeadsByCriteriaUseCase {
 
       // Busca por nome da empresa
       if (input.companyIdentifier?.companyName && results.length === 0) {
+        this.logger.log(
+          `[execute] Searching by company name: ${input.companyIdentifier.companyName}`
+        )
+        const nameStart = Date.now()
         const nameResults = await this.searchByCompanyName(
           input.companyIdentifier.companyName,
           limit
+        )
+        this.logger.log(
+          `[execute] Company name search took ${Date.now() - nameStart}ms, found ${nameResults.length} results`
         )
         results.push(...nameResults)
       }
 
       // Busca por critérios (setor, região, porte, filtros avançados) - quando não há busca por identificador
       if (results.length === 0 && this.hasSearchFilter(input)) {
+        this.logger.log(`[execute] Searching by criteria filters`)
+        const criteriaStart = Date.now()
         const criteriaResults = await this.searchByCriteria(input, limit)
+        this.logger.log(
+          `[execute] Criteria search took ${Date.now() - criteriaStart}ms, found ${criteriaResults.length} results`
+        )
         results.push(...criteriaResults)
       }
 
@@ -52,6 +78,10 @@ export class SearchLeadsByCriteriaUseCase {
         hasMore: results.length >= limit
       })
 
+      this.logger.log(
+        `[execute] Total execution time: ${Date.now() - startTime}ms, returning ${results.length} results`
+      )
+
       return new ModelOutput<SearchLeadsByCriteriaOutput>({
         data: output,
         hasError: false,
@@ -59,10 +89,18 @@ export class SearchLeadsByCriteriaUseCase {
         statusCode: HttpStatus.OK
       })
     } catch (error) {
+      const rawMessage = error instanceof Error ? error.message : ''
+      const errorMessage = rawMessage || 'Erro ao buscar leads'
+      const errorStack = error instanceof Error ? error.stack : ''
+      this.logger.error(
+        `[execute] Error after ${Date.now() - startTime}ms: ${errorMessage}`,
+        errorStack
+      )
+
       return new ModelOutput<SearchLeadsByCriteriaOutput>({
         data: null,
         hasError: true,
-        error: { message: [error.message || 'Erro ao buscar leads'] },
+        error: { message: [errorMessage] },
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR
       })
     }
@@ -153,18 +191,19 @@ export class SearchLeadsByCriteriaUseCase {
       limit
     }
 
-    console.log(
-      '[SearchLeadsByCriteriaUseCase] Calling findByCriteriaRaw with filter:',
-      JSON.stringify(filter)
+    this.logger.log(
+      `[searchByCriteria] Calling findByCriteriaRaw with filter: ${JSON.stringify(filter)}`
     )
+    const queryStart = Date.now()
+
     const rawResults = await this.leadRepository.findByCriteriaRaw(filter)
-    console.log(
-      '[SearchLeadsByCriteriaUseCase] findByCriteriaRaw returned',
-      rawResults.length,
-      'results'
+
+    this.logger.log(
+      `[searchByCriteria] findByCriteriaRaw took ${Date.now() - queryStart}ms, returned ${rawResults.length} results`
     )
 
     const results: SearchLeadResult[] = []
+    const mappingStart = Date.now()
 
     for (const rawData of rawResults) {
       const fullCnpj = `${rawData.basicCnpj}${rawData.cnpjOrder}${rawData.cnpjDv}`
@@ -178,6 +217,10 @@ export class SearchLeadsByCriteriaUseCase {
         )
       )
     }
+
+    this.logger.log(
+      `[searchByCriteria] Mapping ${rawResults.length} results took ${Date.now() - mappingStart}ms`
+    )
 
     return results
   }

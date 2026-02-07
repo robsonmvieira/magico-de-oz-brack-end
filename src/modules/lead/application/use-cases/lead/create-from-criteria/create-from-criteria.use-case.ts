@@ -270,12 +270,18 @@ export class CreateFromCriteriaUseCase {
     const rf = context.rfData
     const gp = context.googlePlace
 
+    // Validate phone: prefer Google Places (more accurate), fallback to RF
+    // If RF phone is invalid, still try Google phone
+    const googlePhone = this.validatePhone(gp?.internationalPhoneNumber)
+    const rfPhone = this.validatePhone(rf.phone)
+    const validPhone = googlePhone || rfPhone
+
     const lead = LeadEntity.create({
       leadCategoryId: categoryId,
       companyName: rf.companyName,
       tradeName: rf.tradeName || gp?.displayName?.text || undefined,
       source: gp ? LeadSource.GOOGLE_MAPS : LeadSource.IMPORTED,
-      phone: gp?.internationalPhoneNumber || rf.phone || undefined,
+      phone: validPhone,
       email: rf.email || undefined,
       website: gp?.websiteUri || undefined,
       address: rf.address
@@ -347,5 +353,29 @@ export class CreateFromCriteriaUseCase {
 
     const date = new Date(year, month, day)
     return Number.isNaN(date.getTime()) ? undefined : date
+  }
+
+  /**
+   * Validates phone number and returns undefined if invalid.
+   * This prevents creation errors from RF data with old phone formats (7 digits).
+   */
+  private validatePhone(phone: string | undefined | null): string | undefined {
+    if (!phone) return undefined
+
+    // Normalize: remove non-digits and country code (55)
+    let cleaned = phone.replaceAll(/\D/g, '')
+    if (
+      (cleaned.length === 12 || cleaned.length === 13) &&
+      cleaned.startsWith('55')
+    ) {
+      cleaned = cleaned.slice(2)
+    }
+
+    // Valid: 10 digits (fixed) or 11 digits (mobile)
+    const isValid =
+      /^(\d{2})(\d{5})(\d{4})$/.test(cleaned) ||
+      /^(\d{2})(\d{4})(\d{4})$/.test(cleaned)
+
+    return isValid ? cleaned : undefined
   }
 }
