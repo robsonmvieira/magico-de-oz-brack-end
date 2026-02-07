@@ -1,5 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common'
-import { and, eq, gte, ilike, inArray, like, or, SQL } from 'drizzle-orm'
+import { Inject, Injectable, Logger } from '@nestjs/common'
+import { and, eq, ilike, inArray } from 'drizzle-orm'
 import { PgColumn } from 'drizzle-orm/pg-core'
 import { DrizzleRepository } from '@modules/shared/infra/repositories'
 import { DRIZZLE, DrizzleDB, PG_POOL } from '@modules/database'
@@ -60,6 +60,7 @@ export class LeadRepository
   extends DrizzleRepository<typeof LeadSchema>
   implements ILeadRepository
 {
+  private readonly logger = new Logger(LeadRepository.name)
   private readonly simpleTable = SimpleSchema
   private readonly partnerTable = PartnerSchema
   private readonly countryTable = CountrySchema
@@ -396,38 +397,88 @@ export class LeadRepository
   async findByCriteriaRaw(
     filter: SearchByCriteriaFilter
   ): Promise<CnpjRawData[]> {
+    const startTime = Date.now()
     const limit = filter.limit ?? 50
 
+    this.logger.log(
+      `[findByCriteriaRaw] Starting with filter: ${JSON.stringify(filter)}`
+    )
+
     if (this.hasNoFilters(filter)) {
+      this.logger.log(
+        `[findByCriteriaRaw] No filters provided, returning empty`
+      )
       return []
     }
 
+    const textSearchStart = Date.now()
     const matchingCnpjs = await this.searchCnpjsByTextFilters(filter, limit)
+    this.logger.log(
+      `[findByCriteriaRaw] Text search took ${Date.now() - textSearchStart}ms, found ${matchingCnpjs.length} CNPJs`
+    )
 
     if (this.shouldReturnEmpty(filter, matchingCnpjs)) {
+      this.logger.log(
+        `[findByCriteriaRaw] Should return empty (text filter required but no matches)`
+      )
       return []
     }
 
-    const conditions = this.buildFilterConditions(filter, matchingCnpjs)
+    // For text-based searches, we need to filter by matching CNPJs
+    const filterWithCnpjs = { ...filter }
+    if (matchingCnpjs.length > 0) {
+      // When we have matching CNPJs from text search, use them as the primary filter
+      this.logger.log(
+        `[findByCriteriaRaw] Using ${matchingCnpjs.length} matching CNPJs from text search`
+      )
+    }
 
-    if (!filter.term && !filter.keywords?.length && conditions.length === 0) {
+    // Check if we have any filters to apply
+    const hasFilters =
+      filter.sector ||
+      filter.region ||
+      filter.states?.length ||
+      filter.companySize ||
+      filter.foundationYear ||
+      matchingCnpjs.length > 0
+
+    if (!hasFilters) {
+      this.logger.log(
+        `[findByCriteriaRaw] No conditions to apply, returning empty`
+      )
       return []
     }
 
+    const establishmentStart = Date.now()
     const establishments = await this.fetchEstablishmentsWithDetails(
-      conditions,
+      filterWithCnpjs,
       limit
+    )
+    this.logger.log(
+      `[findByCriteriaRaw] Fetch establishments took ${Date.now() - establishmentStart}ms, found ${establishments.length} establishments`
     )
 
     if (establishments.length === 0) {
+      this.logger.log(
+        `[findByCriteriaRaw] No establishments found, total time: ${Date.now() - startTime}ms`
+      )
       return []
     }
 
+    const partnersStart = Date.now()
     const partnersByBasicCnpj = await this.fetchPartnersByCnpjs(
       establishments.map(e => e.basicCnpj)
     )
+    this.logger.log(
+      `[findByCriteriaRaw] Fetch partners took ${Date.now() - partnersStart}ms`
+    )
 
-    return this.mapToCnpjRawData(establishments, partnersByBasicCnpj)
+    const result = this.mapToCnpjRawData(establishments, partnersByBasicCnpj)
+    this.logger.log(
+      `[findByCriteriaRaw] Total time: ${Date.now() - startTime}ms, returning ${result.length} results`
+    )
+
+    return result
   }
 
   private hasNoFilters(filter: SearchByCriteriaFilter): boolean {
@@ -546,108 +597,151 @@ export class LeadRepository
     )
   }
 
-  private buildFilterConditions(
-    filter: SearchByCriteriaFilter,
-    matchingCnpjs: string[]
-  ): SQL[] {
-    const conditions: SQL[] = []
-
-    if (matchingCnpjs.length > 0) {
-      conditions.push(
-        inArray(this.establishmentTable.basic_cnpj, matchingCnpjs)
-      )
-    }
-
-    if (filter.sector) {
-      const cnaeDivisions = getCnaeDivisionsForSector(filter.sector)
-      if (cnaeDivisions.length > 0) {
-        const cnaeConditions = cnaeDivisions.map(division =>
-          like(this.establishmentTable.main_cnae, `${division}%`)
-        )
-        const cnaeOrCondition = or(...cnaeConditions)
-        if (cnaeOrCondition) {
-          conditions.push(cnaeOrCondition)
-        }
-      }
-    }
-
-    if (filter.region) {
-      const states = getStatesForRegion(filter.region)
-      if (states && states.length > 0) {
-        conditions.push(inArray(this.establishmentTable.state, states))
-      }
-    }
-
-    if (filter.states && filter.states.length > 0) {
-      const normalizedStates = filter.states.map(s => s.toUpperCase().trim())
-      conditions.push(inArray(this.establishmentTable.state, normalizedStates))
-    }
-
-    if (filter.companySize) {
-      conditions.push(eq(this.companyTable.company_size, filter.companySize))
-    }
-
-    if (filter.foundationYear) {
-      const startDate = `${filter.foundationYear}0101`
-      conditions.push(
-        gte(this.establishmentTable.activity_start_date, startDate)
-      )
-    }
-
-    return conditions
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async fetchEstablishmentsWithDetails(
-    conditions: SQL[],
+    filter: SearchByCriteriaFilter,
     limit: number
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any[]> {
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+    const client = await this.pool.connect()
+    try {
+      await client.query('SET statement_timeout = 30000')
 
-    return this.db
-      .selectDistinct({
-        basicCnpj: this.establishmentTable.basic_cnpj,
-        cnpjOrder: this.establishmentTable.cnpj_order,
-        cnpjDv: this.establishmentTable.cnpj_dv,
-        companyName: this.companyTable.company_name,
-        legalNatureCode: this.companyTable.legal_nature_code,
-        socialCapital: this.companyTable.social_capital,
-        companySize: this.companyTable.company_size,
-        tradeName: this.establishmentTable.trade_name,
-        registrationStatus: this.establishmentTable.registration_status,
-        activityStartDate: this.establishmentTable.activity_start_date,
-        mainCnae: this.establishmentTable.main_cnae,
-        ddd1: this.establishmentTable.ddd1,
-        phone1: this.establishmentTable.phone1,
-        email: this.establishmentTable.email,
-        streetType: this.establishmentTable.street_type,
-        street: this.establishmentTable.street,
-        number: this.establishmentTable.number,
-        complement: this.establishmentTable.complement,
-        neighborhood: this.establishmentTable.neighborhood,
-        zipCode: this.establishmentTable.zip_code,
-        state: this.establishmentTable.state,
-        cityCode: this.establishmentTable.city_code,
-        countryCode: this.establishmentTable.country_code,
-        cityName: this.municipalityTable.name,
-        countryName: this.countryTable.name
-      })
-      .from(this.establishmentTable)
-      .innerJoin(
-        this.companyTable,
-        eq(this.companyTable.basic_cnpj, this.establishmentTable.basic_cnpj)
+      this.logger.log(
+        `[fetchEstablishmentsWithDetails] Building optimized query for filter: ${JSON.stringify(filter)}`
       )
-      .leftJoin(
-        this.municipalityTable,
-        eq(this.municipalityTable.code, this.establishmentTable.city_code)
+      const queryStart = Date.now()
+
+      // Build WHERE conditions for establishments
+      const estConditions: string[] = []
+      const params: (string | string[])[] = []
+      let paramIndex = 1
+
+      // CNAE filter (sector)
+      if (filter.sector) {
+        const cnaeDivisions = getCnaeDivisionsForSector(filter.sector)
+        if (cnaeDivisions.length > 0) {
+          // Use range query instead of multiple LIKEs
+          const minCnae = cnaeDivisions.sort()[0]
+          const maxCnae = String(
+            Number(cnaeDivisions.sort()[cnaeDivisions.length - 1]) + 1
+          ).padStart(2, '0')
+          estConditions.push(
+            `main_cnae >= $${paramIndex} AND main_cnae < $${paramIndex + 1}`
+          )
+          params.push(minCnae, maxCnae)
+          paramIndex += 2
+        }
+      }
+
+      // Region filter (states)
+      if (filter.region) {
+        const states = getStatesForRegion(filter.region)
+        if (states && states.length > 0) {
+          estConditions.push(`state = ANY($${paramIndex}::text[])`)
+          params.push(states)
+          paramIndex++
+        }
+      }
+
+      // Specific states filter
+      if (filter.states && filter.states.length > 0) {
+        const normalizedStates = filter.states.map(s => s.toUpperCase().trim())
+        estConditions.push(`state = ANY($${paramIndex}::text[])`)
+        params.push(normalizedStates)
+        paramIndex++
+      }
+
+      // Foundation year filter
+      if (filter.foundationYear) {
+        estConditions.push(`activity_start_date >= $${paramIndex}`)
+        params.push(`${filter.foundationYear}0101`)
+        paramIndex++
+      }
+
+      // Company size filter
+      let companySizeCondition = ''
+      if (filter.companySize) {
+        companySizeCondition = `AND c.company_size = $${paramIndex}`
+        params.push(filter.companySize)
+        paramIndex++
+      }
+
+      const estWhereClause =
+        estConditions.length > 0 ? `WHERE ${estConditions.join(' AND ')}` : ''
+
+      // Pre-fetch multiplier for CTE (fetch more to account for company_size filter)
+      const cteLimit = filter.companySize ? limit * 10 : limit * 2
+
+      // Optimized query using CTE with early LIMIT
+      const query = `
+        WITH filtered_establishments AS (
+          SELECT basic_cnpj, cnpj_order, cnpj_dv, trade_name, registration_status,
+                 activity_start_date, main_cnae, ddd1, phone1, email, street_type,
+                 street, number, complement, neighborhood, zip_code, state, city_code, country_code
+          FROM establishments
+          ${estWhereClause}
+          LIMIT ${cteLimit}
+        )
+        SELECT DISTINCT
+          e.basic_cnpj AS "basicCnpj",
+          e.cnpj_order AS "cnpjOrder",
+          e.cnpj_dv AS "cnpjDv",
+          c.company_name AS "companyName",
+          c.legal_nature_code AS "legalNatureCode",
+          c.social_capital AS "socialCapital",
+          c.company_size AS "companySize",
+          e.trade_name AS "tradeName",
+          e.registration_status AS "registrationStatus",
+          e.activity_start_date AS "activityStartDate",
+          e.main_cnae AS "mainCnae",
+          e.ddd1,
+          e.phone1,
+          e.email,
+          e.street_type AS "streetType",
+          e.street,
+          e.number,
+          e.complement,
+          e.neighborhood,
+          e.zip_code AS "zipCode",
+          e.state,
+          e.city_code AS "cityCode",
+          e.country_code AS "countryCode",
+          m.name AS "cityName",
+          co.name AS "countryName"
+        FROM filtered_establishments e
+        INNER JOIN companies c ON c.basic_cnpj = e.basic_cnpj ${companySizeCondition}
+        LEFT JOIN municipalities m ON m.code = e.city_code
+        LEFT JOIN countries co ON co.code = e.country_code
+        LIMIT ${limit}
+      `
+
+      this.logger.log(
+        `[fetchEstablishmentsWithDetails] Executing optimized CTE query with ${params.length} params`
       )
-      .leftJoin(
-        this.countryTable,
-        eq(this.countryTable.code, this.establishmentTable.country_code)
+
+      const result = await client.query(query, params)
+
+      this.logger.log(
+        `[fetchEstablishmentsWithDetails] Query completed in ${Date.now() - queryStart}ms, found ${result.rows.length} rows`
       )
-      .where(whereClause)
-      .limit(limit)
+      return result.rows
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes('canceling statement due to statement timeout')
+      ) {
+        this.logger.warn(
+          `[fetchEstablishmentsWithDetails] Query timeout after 30s`
+        )
+        throw new Error(
+          'A busca demorou muito tempo. Tente adicionar mais filtros para refinar a pesquisa.'
+        )
+      }
+      throw error
+    } finally {
+      client.release()
+    }
   }
 
   private async fetchPartnersByCnpjs(basicCnpjs: string[]): Promise<
